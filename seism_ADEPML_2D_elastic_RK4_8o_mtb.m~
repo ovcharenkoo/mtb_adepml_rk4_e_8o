@@ -168,7 +168,7 @@ tic;  %start timer
     snapshot_time=150;
 
 %Use explosive source or gaussian?
-    EXPLOSIVE_SOURCE=false;
+    EXPLOSIVE_SOURCE=true;
 
 %Show source position on the graph?
     SHOW_SOURCE_POSITION=true;
@@ -268,7 +268,7 @@ tic;  %start timer
 % display information on the screen from time to time
 % the time step is twice smaller for this fourth-order simulation,
 % therefore let us foruble the interval in time steps at which we display information
-    IT_DISPLAY =5;
+    IT_DISPLAY = 50;
 % value of PI
     PI = 3.141592653589793238462643d0;
 
@@ -283,9 +283,6 @@ tic;  %start timer
 
 % velocity threshold above which we consider that the code became unstable
     STABILITY_THRESHOLD = 1.d+25;
-    
-     nx_vec=1:NX*DELTAX;	%[m]
- ny_vec=1:NY*DELTAY;
 
 % Holberg (1987) coefficients, taken from
 %  @ARTICLE{Hol87,
@@ -498,7 +495,7 @@ g_y_2(:) = 1.d0;
 % origin of the PML layer (position of right edge minus thickness, in meters)
 xoriginleft = thickness_PML_x;
 xoriginright = (NX-1)*DELTAX - thickness_PML_x;
-for i = 1:NX+8
+for i = NX+8
     % abscissa of current grid point along the damping profile
     xval = DELTAX * double(i-1);
     %---------- left edge
@@ -512,6 +509,8 @@ for i = 1:NX+8
                 K_x_1(i) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
                 alpha_x_1(i) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
             end
+            % define damping profile at half the grid points
+            abscissa_in_PML = xoriginleft - (xval + DELTAX/2.d0);
         end
 
     %---------- right edge
@@ -561,7 +560,7 @@ end
 yoriginbottom = thickness_PML_y;
 yorigintop = (NY-1)*DELTAY - thickness_PML_y;
 
-for j = 1:NY+8
+for j = NY+8
     % abscissa of current grid point along the damping profile
     yval = DELTAY * double(j-1);
     %---------- bottom edge
@@ -609,8 +608,8 @@ for j = 1:NY+8
 end
 
 % compute the Lame parameters and density
-for j = 1:NY+8
-    for i = 1:NX+8
+for j = NY+8
+    for i = NX+8
         rho(i,j) = density;
         mu(i,j) = density*cs*cs;
         lambda(i,j) = density*(cp*cp - 2.d0*cs*cs);
@@ -641,8 +640,8 @@ end
 % find closest grid point for each receiver
 for irec=1:NREC
     dist = HUGEVAL;
-    for j = 1:NY+8
-        for i = 1:NX+8
+    for j = 1:NY
+        for i = 1:NX
             distval = sqrt((DELTAX*double(i-1) - xrec(irec))^2 + (DELTAY*double(j-1) - yrec(irec))^2);
                 if(distval < dist) 
                     dist = distval;
@@ -732,8 +731,8 @@ for it = 1:NSTEP
             end
         end
 
-        for j = 5:NY
-            for i = 5:NX
+        for j = 5:NY-1
+            for i = 5:NX-1
                 % interpolate density at the right location in the staggered grid cell
                 value_dsigmaxy_dx = ( c1 * (dsigmaxy(1,i+1,j) - dsigmaxy(1,i,j)) + c2 * (dsigmaxy(1,i+2,j) - dsigmaxy(1,i-1,j)) +  ...
                 c3 * (dsigmaxy(1,i+3,j) - dsigmaxy(1,i-2,j)) + c4 * (dsigmaxy(1,i+4,j) - dsigmaxy(1,i-3,j)) )/ DELTAX;
@@ -769,41 +768,29 @@ for it = 1:NSTEP
         % define location of the source
         i = ISOURCE;
         j = JSOURCE;
-        
-         if EXPLOSIVE_SOURCE
-            source_term = factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2);
-            force_x = source_term;
-            force_y = source_term;
-            sigmaxx(i,j)=sigmaxx(i,j)+force_x;
-            sigmayy(i,j)=sigmayy(i,j)+force_y;
-         else
-            dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
-            dvy(2,i,j) = dvy(2,i,j) + force_y / rho(i,j);
-%             vx(i,j) = vx(i,j) + force_x * DELTAT / rho(i,j);
-%             vy(i,j) = vy(i,j) + force_y * DELTAT / rho_half_x_half_y;
-        end
 
-
+        dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
+        dvy(2,i,j) = dvy(2,i,j) + force_y / rho(i,j);
 
         % Dirichlet conditions (rigid boundaries) on all the edges of the grid
         dvx(:,1:6,:) = ZERO;
-        dvx(:,(NX+4):(NX+8),:) = ZERO;
+        dvx(:,NX+4:NX+8,:) = ZERO;
 
         dvx(:,:,1:6) = ZERO;
-        dvx(:,:,(NY+4):(NY+8)) = ZERO;
+        dvx(:,:,NY:NY+4) = ZERO;
 
         dvy(:,1:6,:) = ZERO;
         dvy(:,NX:NX+4,:) = ZERO;
 
         dvy(:,:,1:6) = ZERO;
-        dvy(:,:,(NY+4):(NY+8)) = ZERO;
+        dvy(:,:,NY:NY+4) = ZERO;
 
         %----------------------
         % compute stress sigma
         %----------------------
 
-        for j = 5:NY
-            for i = 5:NX
+        for j = 2:NY
+            for i = 1:NX-1
                 % interpolate material parameters at the right location in the staggered grid cell
                 lambdav = lambda(i+1,j);
                 muv = mu(i,j);
@@ -824,8 +811,8 @@ for it = 1:NSTEP
             end
         end
 
-        for j = 5:NY
-            for i = 5:NX
+        for j = 1:NY-1
+            for i = 2:NX
                 % interpolate material parameters at the right location in the staggered grid cell
                 muv =mu(i,j);
                 value_dvx_dy = ( c1 * (dvx(1,i,j+1) - dvx(1,i,j)) + c2 * (dvx(1,i,j+2) - dvx(1,i,j-1)) +   ...
@@ -863,13 +850,13 @@ for it = 1:NSTEP
         dvx(:,NX:NX+4,:) = ZERO;
 
         dvx(:,:,1:6) = ZERO;
-        dvx(:,:,(NY+4):(NY+8)) = ZERO;
+        dvx(:,:,NY:NY+4) = ZERO;
 
         dvy(:,1:6,:) = ZERO;
         dvy(:,NX:NX+4,:) = ZERO;
 
         dvy(:,:,1:6) = ZERO;
-        dvy(:,:,(NY+4):(NY+8)) = ZERO;
+        dvy(:,:,NY:NY+4) = ZERO;
 
         vx(1:6,:) = ZERO;
         vx(:,1:6) = ZERO;
@@ -877,9 +864,9 @@ for it = 1:NSTEP
         vy(:,1:6) = ZERO;
 
         vx(NX:NX+4,:) = ZERO;
-        vx(:,(NY+4):(NY+8)) = ZERO;
+        vx(:,NY:NY+4) = ZERO;
         vy(NX:NX+4,:) = ZERO;
-        vy(:,(NY+4):(NY+8)) = ZERO;
+        vy(:,NY:NY+4) = ZERO;
     end
 
     vx(:,:) =  dvx(1,:,:);
@@ -905,15 +892,15 @@ for it = 1:NSTEP
     % in principle we should use rho_x_y instead of rho for vy
     % in order to interpolate density at the right location in the staggered grid cell
     % but in a homogeneous medium we can safely ignore it
-%     total_energy_kinetic(it) = 0.5d0 * sum(  ...
-%     rho(NPOINTS_PML+1:NX-NPOINTS_PML,NPOINTS_PML+1:NY-NPOINTS_PML)*(  ...
-%     vx(NPOINTS_PML+1:NX-NPOINTS_PML,NPOINTS_PML+1:NY-NPOINTS_PML)^2 +   ...
-%     vy(NPOINTS_PML+1:NX-NPOINTS_PML,NPOINTS_PML+1:NY-NPOINTS_PML)^2));
+    total_energy_kinetic(it) = 0.5d0 * sum(  ...
+    rho(NPOINTS_PML+1:NX-NPOINTS_PML,NPOINTS_PML+1:NY-NPOINTS_PML)*(  ...
+    vx(NPOINTS_PML+1:NX-NPOINTS_PML,NPOINTS_PML+1:NY-NPOINTS_PML)^2 +   ...
+    vy(NPOINTS_PML+1:NX-NPOINTS_PML,NPOINTS_PML+1:NY-NPOINTS_PML)^2));
 
     % add potential energy, defined as 1/2 epsilon_ij sigma_ij
     % in principle we should interpolate the medium parameters at the right location
     % in the staggered grid cell but in a homogeneous medium we can safely ignore it
-    %total_energy_potential(it) = ZERO;
+    total_energy_potential(it) = ZERO;
     for j = NPOINTS_PML+1: NY-NPOINTS_PML
         for i = NPOINTS_PML+1: NX-NPOINTS_PML
             epsilon_xx = ((lambda(i,j) + 2.d0*mu(i,j)) * sigmaxx(i,j) - lambda(i,j) *  ...
@@ -921,8 +908,8 @@ for it = 1:NSTEP
             epsilon_yy = ((lambda(i,j) + 2.d0*mu(i,j)) * sigmayy(i,j) - lambda(i,j) *  ...
             sigmaxx(i,j)) / (4.d0 * mu(i,j) * (lambda(i,j) + mu(i,j)));
             epsilon_xy = sigmaxy(i,j) / (2.d0 * mu(i,j));
-%             total_energy_potential(it) = total_energy_potential(it) +  ...
-%             0.5d0 * (epsilon_xx * sigmaxx(i,j) + epsilon_yy * sigmayy(i,j) + 2.d0 * epsilon_xy * sigmaxy(i,j));
+            total_energy_potential(it) = total_energy_potential(it) +  ...
+            0.5d0 * (epsilon_xx * sigmaxx(i,j) + epsilon_yy * sigmayy(i,j) + 2.d0 * epsilon_xy * sigmaxy(i,j));
         end
     end
 
