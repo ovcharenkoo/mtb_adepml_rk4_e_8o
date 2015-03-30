@@ -205,8 +205,8 @@ tic;  %start timer
 % end
 
 % total number of grid points in each direction of the grid
-    NX = 121;
-    NY = 102;
+    NX = 100;
+    NY = 100;
 
 % Explicit (epsn=1,epsn=0), Implicit (epsn=0,epsn1=1), semi-implicit (epsn=0.5,epsn1=0.5)
     iexpl=0;
@@ -219,10 +219,10 @@ tic;  %start timer
     DELTAY = DELTAX;
 
 % flags to add PML layers to the edges of the grid
-    USE_PML_XMIN = true;
-    USE_PML_XMAX = true;
-    USE_PML_YMIN = true;
-    USE_PML_YMAX = true;
+    USE_PML_XMIN =false;
+    USE_PML_XMAX = false;
+    USE_PML_YMIN = false;
+    USE_PML_YMAX = false;
 
 % thickness of the PML layer in grid points. 8th order in space imposes to
 % increase the thickness of the CPML
@@ -250,9 +250,8 @@ tic;  %start timer
     factor = 1.d4;
 
 % source
-    ISOURCE = NX - 2*NPOINTS_PML  - 1;
-%  ISOURCE = (NX-1)/2;
-    JSOURCE = 2 * NY / 3 + 1;
+  ISOURCE = NX - round(NX/3);
+  JSOURCE = round(NY / 3) + 1;
     xsource = (ISOURCE - 1) * DELTAX;
     ysource = (JSOURCE - 1) * DELTAY;
 % angle of source force clockwise with respect to vertical (Y) axis
@@ -284,8 +283,8 @@ tic;  %start timer
 % velocity threshold above which we consider that the code became unstable
     STABILITY_THRESHOLD = 1.d+25;
     
-     nx_vec=1:NX*DELTAX;	%[m]
- ny_vec=1:NY*DELTAY;
+     nx_vec=0:NX*DELTAX;	%[m]
+     ny_vec=0:NY*DELTAY;
 
 % Holberg (1987) coefficients, taken from
 %  @ARTICLE{Hol87,
@@ -496,8 +495,8 @@ g_y_2(:) = 1.d0;
 
 % damping in the X direction
 % origin of the PML layer (position of right edge minus thickness, in meters)
-xoriginleft = thickness_PML_x;
-xoriginright = (NX-1)*DELTAX - thickness_PML_x;
+xoriginleft = thickness_PML_x+4;
+xoriginright = (NX+4-1)*DELTAX - thickness_PML_x;
 for i = 1:NX+8
     % abscissa of current grid point along the damping profile
     xval = DELTAX * double(i-1);
@@ -558,8 +557,8 @@ end
 
 % damping in the Y direction
 % origin of the PML layer (position of right edge minus thickness, in meters)
-yoriginbottom = thickness_PML_y;
-yorigintop = (NY-1)*DELTAY - thickness_PML_y;
+yoriginbottom = thickness_PML_y+4;
+yorigintop = (NY+4-1)*DELTAY - thickness_PML_y;
 
 for j = 1:NY+8
     % abscissa of current grid point along the damping profile
@@ -673,11 +672,24 @@ input('Run time loop?');
 %---
 %---  beginning of time loop
 %---
+%Set red-blue colormap for images
+  CMAP=zeros(256,3);
+  cm1=[0 0 1]; %blue
+  cm2=[1 1 1]; %white
+  cm3=[1 0 0]; %red
+  for nc=1:128
+	  f=(nc-1)/128;
+	  cm=(1-sqrt(f))*cm1+sqrt(f)*cm2;
+	  CMAP(nc,:)=cm;
+	  cm=(1-f^2)*cm2+f^2*cm3;
+	  CMAP(128+nc,:)=cm;
+	end
+  colormap(CMAP);
+  set(gca,'YDir','normal');
 
 for it = 1:NSTEP
 
     % v and sigma temporary variables of RK4
-
     dvx(1,:,:) = vx(:,:);
     dvy(1,:,:) = vy(:,:);
     dsigmaxx(1,:,:) = sigmaxx(:,:);
@@ -715,8 +727,8 @@ for it = 1:NSTEP
         % compute velocity
         %------------------
 
-        for j = 5:NY
-            for i = 5:NX
+        for j = 5:NY+5
+            for i = 5:NX+5
                 value_dsigmaxx_dx = ( c1 * (dsigmaxx(1,i,j) - dsigmaxx(1,i-1,j)) + c2 * (dsigmaxx(1,i+1,j) - dsigmaxx(1,i-2,j)) +  ...
                 c3 * (dsigmaxx(1,i+2,j) - dsigmaxx(1,i-3,j)) + c4 * (dsigmaxx(1,i+3,j) - dsigmaxx(1,i-4,j)) )/ DELTAX;
                 value_dsigmaxy_dy = ( c1 * (dsigmaxy(1,i,j) - dsigmaxy(1,i,j-1)) + c2* (dsigmaxy(1,i,j+1) - dsigmaxy(1,i,j-2)) +  ...
@@ -732,9 +744,8 @@ for it = 1:NSTEP
             end
         end
 
-        for j = 5:NY
-            for i = 5:NX
-                % interpolate density at the right location in the staggered grid cell
+        for j = 5:NY+5
+            for i = 5:NX+5
                 value_dsigmaxy_dx = ( c1 * (dsigmaxy(1,i+1,j) - dsigmaxy(1,i,j)) + c2 * (dsigmaxy(1,i+2,j) - dsigmaxy(1,i-1,j)) +  ...
                 c3 * (dsigmaxy(1,i+3,j) - dsigmaxy(1,i-2,j)) + c4 * (dsigmaxy(1,i+4,j) - dsigmaxy(1,i-3,j)) )/ DELTAX;
                 value_dsigmayy_dy = ( c1 * (dsigmayy(1,i,j+1) - dsigmayy(1,i,j)) + c2 * (dsigmayy(1,i,j+2) - dsigmayy(1,i,j-1)) +  ...
@@ -767,8 +778,8 @@ for it = 1:NSTEP
         force_y = cos(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
 
         % define location of the source
-        i = ISOURCE;
-        j = JSOURCE;
+        i = ISOURCE+4;
+        j = JSOURCE+4;
         
          if EXPLOSIVE_SOURCE
             source_term = factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2);
@@ -776,36 +787,38 @@ for it = 1:NSTEP
             force_y = source_term;
             sigmaxx(i,j)=sigmaxx(i,j)+force_x;
             sigmayy(i,j)=sigmayy(i,j)+force_y;
-         else
+         end
+         
+         if ~EXPLOSIVE_SOURCE
             dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
             dvy(2,i,j) = dvy(2,i,j) + force_y / rho(i,j);
 %             vx(i,j) = vx(i,j) + force_x * DELTAT / rho(i,j);
 %             vy(i,j) = vy(i,j) + force_y * DELTAT / rho_half_x_half_y;
-        end
+         end
 
 
 
         % Dirichlet conditions (rigid boundaries) on all the edges of the grid
-        dvx(:,1:6,:) = ZERO;
+        dvx(:,1:5,:) = ZERO;
         dvx(:,(NX+4):(NX+8),:) = ZERO;
 
-        dvx(:,:,1:6) = ZERO;
+        dvx(:,:,1:5) = ZERO;
         dvx(:,:,(NY+4):(NY+8)) = ZERO;
 
-        dvy(:,1:6,:) = ZERO;
-        dvy(:,NX:NX+4,:) = ZERO;
+        dvy(:,1:5,:) = ZERO;
+        dvy(:,(NX+4):(NX+8),:) = ZERO;
 
-        dvy(:,:,1:6) = ZERO;
+        dvy(:,:,1:5) = ZERO;
         dvy(:,:,(NY+4):(NY+8)) = ZERO;
 
         %----------------------
         % compute stress sigma
         %----------------------
 
-        for j = 5:NY
-            for i = 5:NX
+        for j = 5:NY+4
+            for i = 5:NX+4
                 % interpolate material parameters at the right location in the staggered grid cell
-                lambdav = lambda(i+1,j);
+                lambdav = lambda(i,j);
                 muv = mu(i,j);
                 lambda_plus_two_mu = lambdav + 2.d0 * muv;
                 value_dvx_dx = ( c1 * (dvx(1,i+1,j) - dvx(1,i,j)) + c2 * (dvx(1,i+2,j) - dvx(1,i-1,j)) +  ...
@@ -824,8 +837,8 @@ for it = 1:NSTEP
             end
         end
 
-        for j = 5:NY
-            for i = 5:NX
+        for j = 5:NY+4
+            for i = 5:NX+4
                 % interpolate material parameters at the right location in the staggered grid cell
                 muv =mu(i,j);
                 value_dvx_dy = ( c1 * (dvx(1,i,j+1) - dvx(1,i,j)) + c2 * (dvx(1,i,j+2) - dvx(1,i,j-1)) +   ...
@@ -859,26 +872,26 @@ for it = 1:NSTEP
         memory_dvy_dx_1(1,:,:) = memory_dvy_dx_1(2,:,:);
 
         % Dirichlet conditions (rigid boundaries) on all the edges of the grid
-        dvx(:,1:6,:) = ZERO;
-        dvx(:,NX:NX+4,:) = ZERO;
+        dvx(:,1:5,:) = ZERO;
+        dvx(:,(NX+4):(NX+8),:) = ZERO;
 
-        dvx(:,:,1:6) = ZERO;
+        dvx(:,:,1:5) = ZERO;
         dvx(:,:,(NY+4):(NY+8)) = ZERO;
 
-        dvy(:,1:6,:) = ZERO;
-        dvy(:,NX:NX+4,:) = ZERO;
+        dvy(:,1:5,:) = ZERO;
+        dvy(:,(NX+4):(NX+8),:) = ZERO;
 
-        dvy(:,:,1:6) = ZERO;
+        dvy(:,:,1:5) = ZERO;
         dvy(:,:,(NY+4):(NY+8)) = ZERO;
 
-        vx(1:6,:) = ZERO;
-        vx(:,1:6) = ZERO;
-        vy(1:6,:) = ZERO;
-        vy(:,1:6) = ZERO;
+        vx(1:5,:) = ZERO;
+        vx(:,1:5) = ZERO;
+        vy(1:5,:) = ZERO;
+        vy(:,1:5) = ZERO;
 
-        vx(NX:NX+4,:) = ZERO;
+        vx((NX+4):(NX+8),:) = ZERO;
         vx(:,(NY+4):(NY+8)) = ZERO;
-        vy(NX:NX+4,:) = ZERO;
+        vy((NX+4):(NX+8),:) = ZERO;
         vy(:,(NY+4):(NY+8)) = ZERO;
     end
 
@@ -963,7 +976,7 @@ for it = 1:NSTEP
 
         if(SAVE_VY_JPG)
             clf;	%clear current frame
-            imagesc(nx_vec,ny_vec,vy'); 
+            imagesc(nx_vec,ny_vec,vy(5:NX+4,5:NY+4)'); 
             xlabel('m');
             ylabel('m');
             set(gca,'YDir','normal');
