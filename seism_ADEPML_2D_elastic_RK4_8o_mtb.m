@@ -167,12 +167,20 @@ close all;  %close all extra windows
 clc;  %clear console
 clear all; %clear all variables
 shft=5;
+
 %Take instant snapshot
     SNAPSHOT=false;
     snapshot_time=150;
-
+    
+%Plot normal velocity(sqrt of sum of squares vx and vy)
+    PLOT_NORM_V=false;
+    
 %Use explosive source or gaussian?
     EXPLOSIVE_SOURCE=true;
+    % parameters for the explosivesource
+    fexp = 20.d0;
+    texp = 1.20d0 / fexp;
+    factorexp = 1.d4;
 
 %Show source position on the graph?
     SHOW_SOURCE_POSITION=true;
@@ -182,11 +190,9 @@ shft=5;
     pause_time=0.01; %[sec]
 
 % To show or don't show wavefield 
-    SAVE_VX_JPG =false;
-    SAVE_VY_JPG =true;
+    SHOW_VX_JPG =false;
+    SHOW_VY_JPG =true;
     
-    
-
 %Record video - corresponding SAVE_VX or VY must be turned on
 %because video is being created by capturing of current frame
 %Matlab 2012 + required, saves video to a current folder
@@ -194,24 +200,24 @@ shft=5;
     MAKE_MOVIE_VY=false;
 
 %Check if it is possible to save video
-if SAVE_VY_JPG
+if SHOW_VY_JPG
     fig_vy=figure;
 else
     %to get rid of errors that can occur
-    disp('Error. It is necesary to have SAVE_VY_JPG=true.');
+    disp('Error. It is necesary to have SHOW_VY_JPG=true.');
     MAKE_MOVIE_VY=false;
 end
 
-if SAVE_VX_JPG
+if SHOW_VX_JPG
     fig_vx=figure;
 else
     %to get rid of errors that can occur
-    disp('Error. It is necesary to have SAVE_VX_JPG=true.');
+    disp('Error. It is necesary to have SHOW_VX_JPG=true.');
     MAKE_MOVIE_VX=false;
 end
 
 % total number of grid points in each direction of the grid
-    NX = 100;
+    NX = 200;
     NY = 100;
     
 
@@ -229,10 +235,10 @@ end
     ny_vec=1:NY*DELTAY;
     
 % flags to add PML layers to the edges of the grid
-    USE_PML_XMIN = true;
-    USE_PML_XMAX = true;
-    USE_PML_YMIN = true;
-    USE_PML_YMAX = true;
+    USE_PML_XMIN = false;
+    USE_PML_XMAX = false;
+    USE_PML_YMIN = false;
+    USE_PML_YMAX = false;
 
 % thickness of the PML layer in grid points. 8th order in space imposes to
 % increase the thickness of the CPML
@@ -278,7 +284,7 @@ end
 % display information on the screen from time to time
 % the time step is twice smaller for this fourth-order simulation,
 % therefore let us foruble the interval in time steps at which we display information
-    IT_DISPLAY = 5;
+    IT_DISPLAY = 10;
 % value of PI
     PI = 3.141592653589793238462643d0;
 
@@ -557,9 +563,7 @@ for i = 1:(NX+4+shft)
     % CPML damping parameters for the 4 sub time steps of RK4 algorithm
     for inc=1:4
         b_x_1(inc,i) =  (1.d0-epsn*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)))/ ...
-        (1.d0+epsn1*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)));
-       
-
+        (1.d0+epsn1*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)));   
         % this to avoid division by zero outside the PML
         if(abs(d_x_1(i)) > 1.d-6) 
             a_x_1(inc,i) = - DELTAT*rk41(inc)*d_x_1(i) / (K_x_1(i)* K_x_1(i))/...
@@ -708,7 +712,7 @@ input('Run time loop?');
 %---
 
 for it = 1:NSTEP
-
+tic;
     % v and sigma temporary variables of RK4
 
     dvx(1,:,:) = vx(:,:);
@@ -788,27 +792,27 @@ for it = 1:NSTEP
         a = pi*pi*f0*f0;
         t = (double(it-1)+ rk41(inc)) * DELTAT;
 
-        % Gaussian
-        % source_term = factor * exp(-a*(t-t0)^2) %
+      
+        if ~EXPLOSIVE_SOURCE
+            % Gaussian
+            % source_term = factor * exp(-a*(t-t0)^2) %
+            % first derivative of a Gaussian
+            source_term = - factor * 2.d0*a*(t-t0)*exp(-a*(t-t0)^2);
+            % Ricker source time function (second derivative of a Gaussian)
+            % source_term = factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2)
+            
+            force_x = sin(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
+            force_y = cos(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
+            % define location of the source
+            i = ISOURCE+shft;
+            j = JSOURCE+shft;
+            % interpolate density at the right location in the staggered grid cell
+            rho_x_y = rho(i,j);
+            dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
+            dvy(2,i,j) = dvy(2,i,j) + force_y / rho_x_y;
+        end
 
-        % first derivative of a Gaussian
-        source_term = - factor * 2.d0*a*(t-t0)*exp(-a*(t-t0)^2);
 
-        % Ricker source time function (second derivative of a Gaussian)
-        % source_term = factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2)
-
-        force_x = sin(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
-        force_y = cos(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
-
-        % define location of the source
-        i = ISOURCE+shft;
-        j = JSOURCE+shft;
-
-        % interpolate density at the right location in the staggered grid cell
-        rho_x_y = rho(i,j);
-
-        dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
-        dvy(2,i,j) = dvy(2,i,j) + force_y / rho_x_y;
 
         % Dirichlet conditions (rigid boundaries) on all the edges of the grid
         dvx(:,(1+shft),:) = ZERO;
@@ -866,7 +870,19 @@ for it = 1:NSTEP
                 dsigmaxy(2,i,j) = mu_y * (value_dvy_dx + value_dvx_dy);
             end
         end
-
+        
+        if EXPLOSIVE_SOURCE
+            a = pi*pi*fexp*fexp;
+            source_term = - factorexp * 2.d0*a*(t-texp)*exp(-a*(t-texp)^2);
+            %source position
+            i = ISOURCE+shft;
+            j = JSOURCE+shft;
+            force_x = source_term;
+            force_y = source_term;
+            dsigmaxx(2,i,j)=dsigmaxx(2,i,j)+force_x;
+            dsigmayy(2,i,j)=dsigmayy(2,i,j)+force_y;
+        end
+        
         % The new values of the different variables v and sigma are computed
         dvx(1,:,:) = dvx(4,:,:) + rk41(inc) * dvx(2,:,:) * DELTAT;
         dvy(1,:,:) = dvy(4,:,:) + rk41(inc) * dvy(2,:,:) * DELTAT;
@@ -966,7 +982,7 @@ for it = 1:NSTEP
             disp('code became unstable and blew up');
         end    
 
-        if(SAVE_VX_JPG)
+        if(SHOW_VX_JPG)
             clf;
             %fig_vx=figure;
             imagesc(nx_vec,ny_vec,vy');
@@ -986,9 +1002,14 @@ for it = 1:NSTEP
         end
 
 
-        if(SAVE_VY_JPG)
+        if(SHOW_VY_JPG)
             clf;	%clear current frame
-            imagesc(nx_vec,ny_vec,vy(1+shft:NX+shft,1+shft:NX+shft)'); 
+            if PLOT_NORM_V
+                v=(vx.^2+vy.^2).^(0.5d0);
+            else
+                v=vy;
+            end
+            imagesc(nx_vec,ny_vec,v(1+shft:NX+shft,1+shft:NY+shft)'); 
             xlabel('m');
             ylabel('m');
             colorbar();
@@ -1014,6 +1035,7 @@ for it = 1:NSTEP
                 writeVideo(vidObj_vy,F_y);  %- add frame to the movie
                 fprintf('Frame for %s captured\n',movie_name_vy);
             end
+            toc;
         end
         fprintf('\n'); 
     end
