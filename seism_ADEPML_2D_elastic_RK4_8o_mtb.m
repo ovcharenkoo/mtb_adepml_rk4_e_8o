@@ -1,4 +1,4 @@
-close all; clear all; clc;
+%
 % Copyright Universite de Pau et des Pays de l'Aforur, CNRS and INRIA, France.
 % Contributor: Roland Martin, roland forT martin aT univ-pau forT fr
 %
@@ -163,12 +163,16 @@ close all; clear all; clc;
 %             If you want you can thus force automatic conversion to single precision at compile time
 %             or change all the declarations and constants in the code from foruble precision to single.
 tic;  %start timer 
+close all;  %close all extra windows
+clc;  %clear console
+clear all; %clear all variables
+shft=5;
 %Take instant snapshot
     SNAPSHOT=false;
     snapshot_time=150;
 
 %Use explosive source or gaussian?
-    EXPLOSIVE_SOURCE=false;
+    EXPLOSIVE_SOURCE=true;
 
 %Show source position on the graph?
     SHOW_SOURCE_POSITION=true;
@@ -180,6 +184,8 @@ tic;  %start timer
 % To show or don't show wavefield 
     SAVE_VX_JPG =false;
     SAVE_VY_JPG =true;
+    
+    
 
 %Record video - corresponding SAVE_VX or VY must be turned on
 %because video is being created by capturing of current frame
@@ -188,25 +194,26 @@ tic;  %start timer
     MAKE_MOVIE_VY=false;
 
 %Check if it is possible to save video
-% if SAVE_VY_JPG
-%     fig_vy=figure;
-% else
-%     %to get rid of errors that can occur
-%     disp('Error. It is necesary to have SAVE_VY_JPG=true.');
-%     MAKE_MOVIE_VY=false;
-% end
-% 
-% if SAVE_VX_JPG
-%     fig_vx=figure;
-% else
-%     %to get rid of errors that can occur
-%     disp('Error. It is necesary to have SAVE_VX_JPG=true.');
-%     MAKE_MOVIE_VX=false;
-% end
+if SAVE_VY_JPG
+    fig_vy=figure;
+else
+    %to get rid of errors that can occur
+    disp('Error. It is necesary to have SAVE_VY_JPG=true.');
+    MAKE_MOVIE_VY=false;
+end
+
+if SAVE_VX_JPG
+    fig_vx=figure;
+else
+    %to get rid of errors that can occur
+    disp('Error. It is necesary to have SAVE_VX_JPG=true.');
+    MAKE_MOVIE_VX=false;
+end
 
 % total number of grid points in each direction of the grid
     NX = 100;
     NY = 100;
+    
 
 % Explicit (epsn=1,epsn=0), Implicit (epsn=0,epsn1=1), semi-implicit (epsn=0.5,epsn1=0.5)
     iexpl=0;
@@ -218,8 +225,11 @@ tic;  %start timer
     DELTAX = 10.d0;
     DELTAY = DELTAX;
 
+    nx_vec=1:NX*DELTAX;	%[m]
+    ny_vec=1:NY*DELTAY;
+    
 % flags to add PML layers to the edges of the grid
-    USE_PML_XMIN =false;
+    USE_PML_XMIN = false;
     USE_PML_XMAX = false;
     USE_PML_YMIN = false;
     USE_PML_YMAX = false;
@@ -236,7 +246,7 @@ tic;  %start timer
 % total number of time steps
 % the time step is twice smaller for this fourth-order simulation,
 % therefore let us foruble the number of time steps to keep the same total duration
-    NSTEP =  100000;
+    NSTEP =  700;
 
 % time step in seconds
 % 8th-order in space and 4th-order in time finite-difference schemes
@@ -250,8 +260,9 @@ tic;  %start timer
     factor = 1.d4;
 
 % source
-  ISOURCE = NX - round(NX/3);
-  JSOURCE = round(NY / 3) + 1;
+  ISOURCE = NX - round(NX/3)+shft;
+  JSOURCE = round(NY / 3) + 1+shft;
+  
     xsource = (ISOURCE - 1) * DELTAX;
     ysource = (JSOURCE - 1) * DELTAY;
 % angle of source force clockwise with respect to vertical (Y) axis
@@ -267,7 +278,7 @@ tic;  %start timer
 % display information on the screen from time to time
 % the time step is twice smaller for this fourth-order simulation,
 % therefore let us foruble the interval in time steps at which we display information
-    IT_DISPLAY =5;
+    IT_DISPLAY = 5;
 % value of PI
     PI = 3.141592653589793238462643d0;
 
@@ -282,9 +293,6 @@ tic;  %start timer
 
 % velocity threshold above which we consider that the code became unstable
     STABILITY_THRESHOLD = 1.d+25;
-    
-     nx_vec=0:NX*DELTAX;	%[m]
-     ny_vec=0:NY*DELTAY;
 
 % Holberg (1987) coefficients, taken from
 %  @ARTICLE{Hol87,
@@ -305,28 +313,28 @@ tic;  %start timer
     rk42=zeros(4,1);
 
 % main arrays
-    lambda=zeros(NX+8,NY+8);
-    mu=zeros(NX+8,NY+8);
-    rho=zeros(NX+8,NY+8);
-    vx=zeros(NX+8,NY+8);
-    vy=zeros(NX+8,NY+8);
-    sigmaxx=zeros(NX+8,NY+8);
-    sigmayy=zeros(NX+8,NY+8);
-    sigmaxy=zeros(NX+8,NY+8);
+    lambda=zeros((NX+4+shft),(NY+4+shft));
+    mu=zeros((NX+4+shft),(NY+4+shft));
+    rho=zeros((NX+4+shft),(NY+4+shft));
+    vx=zeros((NX+4+shft),(NY+4+shft));
+    vy=zeros((NX+4+shft),(NY+4+shft));
+    sigmaxx=zeros((NX+4+shft),(NY+4+shft));
+    sigmayy=zeros((NX+4+shft),(NY+4+shft));
+    sigmaxy=zeros((NX+4+shft),(NY+4+shft));
 
 % variables are stored in four indices in the first dimension to implement RK4
 % dv fores not always indicate a derivative
-    dvx=zeros(4,NX+8,NY+8);
-    dvy=zeros(4,NX+8,NY+8);
-    dsigmaxx=zeros(4,NX+8,NY+8);
-    dsigmayy=zeros(4,NX+8,NY+8);
-    dsigmaxy=zeros(4,NX+8,NY+8);
+    dvx=zeros(4,(NX+4+shft),(NY+4+shft));
+    dvy=zeros(4,(NX+4+shft),(NY+4+shft));
+    dsigmaxx=zeros(4,(NX+4+shft),(NY+4+shft));
+    dsigmayy=zeros(4,(NX+4+shft),(NY+4+shft));
+    dsigmaxy=zeros(4,(NX+4+shft),(NY+4+shft));
 
 
 
 % for evolution of total energy in the medium
 %    total_energy_kinetic=zeros(NSTEP);
-%    total_energy_potential=zeros(NSTEP);
+ %   total_energy_potential=zeros(NSTEP);
 
 % power to compute d0 profile
     NPOWER = 2.d0;
@@ -343,57 +351,80 @@ tic;  %start timer
 % could declare these arrays in PML only to save a lot of memory, but proof of concept only here
 % We have as many memory variables as the number of frequency shift poles in the CPML
 % Indices are 1 and 2 for the 2 frequency shift poles
-    memory_dvx_dx_1=zeros(4,NX+8,NY+8);
-    memory_dvx_dy_1=zeros(4,NX+8,NY+8);
-    memory_dvy_dx_1=zeros(4,NX+8,NY+8);
-    memory_dvy_dy_1=zeros(4,NX+8,NY+8);
-    memory_dsigmaxx_dx_1=zeros(4,NX+8,NY+8);
-    memory_dsigmayy_dy_1=zeros(4,NX+8,NY+8);
-    memory_dsigmaxy_dx_1=zeros(4,NX+8,NY+8);
-    memory_dsigmaxy_dy_1=zeros(4,NX+8,NY+8);
+    memory_dvx_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvx_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxx_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmayy_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
 
-    memory_dvx_dx_2=zeros(4,NX+8,NY+8);
-    memory_dvx_dy_2=zeros(4,NX+8,NY+8);
-    memory_dvy_dx_2=zeros(4,NX+8,NY+8);
-    memory_dvy_dy_2=zeros(4,NX+8,NY+8);
-    memory_dsigmaxx_dx_2=zeros(4,NX+8,NY+8);
-    memory_dsigmayy_dy_2=zeros(4,NX+8,NY+8);
-    memory_dsigmaxy_dx_2=zeros(4,NX+8,NY+8);
-    memory_dsigmaxy_dy_2=zeros(4,NX+8,NY+8);
-
-% 1D arrays for the damping profiles
-    d_x_1=zeros(NX+8,1);
-    K_x_1=zeros(NX+8,1);
-    alpha_x_1=zeros(NX+8,1);
-    g_x_1=zeros(NX+8,1);
-    ksi_x=zeros(NX+8,1);
-    d_y_1=zeros(NX+8,1);
-    K_y_1=zeros(NX+8,1);
-    alpha_y_1=zeros(NX+8,1);
-    g_y_1=zeros(NX+8,1);
-    ksi_y=zeros(NX+8,1);
+    memory_dvx_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvx_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxx_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmayy_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
 
 % 1D arrays for the damping profiles
-    d_x_2=zeros(NX+8,1);
-    K_x_2=zeros(NX+8,1);
-    alpha_x_2=zeros(NX+8,1);
-    g_x_2=zeros(NX+8,1);
-    d_y_2=zeros(NX+8,1);
-    K_y_2=zeros(NX+8,1);
-    alpha_y_2=zeros(NX+8,1);
-    g_y_2=zeros(NX+8,1);
+    d_x_1=zeros((NX+4+shft),1);
+    K_x_1=zeros((NX+4+shft),1);
+    alpha_x_1=zeros((NX+4+shft),1);
+    g_x_1=zeros((NX+4+shft),1);
+    ksi_x=zeros((NX+4+shft),1);
+    d_x_half_1=zeros((NX+4+shft),1);
+    K_x_half_1=zeros((NX+4+shft),1);
+    alpha_x_half_1=zeros((NX+4+shft),1);
+    g_x_half_1=zeros((NX+4+shft),1);
+    ksi_x_half=zeros((NX+4+shft),1);
+    d_y_1=zeros((NX+4+shft),1);
+    K_y_1=zeros((NX+4+shft),1);
+    alpha_y_1=zeros((NX+4+shft),1);
+    g_y_1=zeros((NX+4+shft),1);
+    ksi_y=zeros((NX+4+shft),1);
+    d_y_half_1=zeros((NX+4+shft),1);
+    K_y_half_1=zeros((NX+4+shft),1);
+    alpha_y_half_1=zeros((NX+4+shft),1);
+    g_y_half_1=zeros((NX+4+shft),1);
+    ksi_y_half=zeros((NX+4+shft),1);
+
+% 1D arrays for the damping profiles
+    d_x_2=zeros((NX+4+shft),1);
+    K_x_2=zeros((NX+4+shft),1);
+    alpha_x_2=zeros((NX+4+shft),1);
+    g_x_2=zeros((NX+4+shft),1);
+    d_x_half_2=zeros((NX+4+shft),1);
+    K_x_half_2=zeros((NX+4+shft),1);
+    alpha_x_half_2=zeros((NX+4+shft),1);
+    g_x_half_2=zeros((NX+4+shft),1);
+    d_y_2=zeros((NX+4+shft),1);
+    K_y_2=zeros((NX+4+shft),1);
+    alpha_y_2=zeros((NX+4+shft),1);
+    g_y_2=zeros((NX+4+shft),1);
+    d_y_half_2=zeros((NX+4+shft),1);
+    K_y_half_2=zeros((NX+4+shft),1);
+    alpha_y_half_2=zeros((NX+4+shft),1);
+    g_y_half_2=zeros((NX+4+shft),1);
 
 % coefficients that allow to reset the memory variables at each RK4 substep depend on the substepping and are  of dimension 4,
 % 1D arrays for the damping profiles
-    a_x_1=zeros(4,NX+8);
-    b_x_1=zeros(4,NX+8);
-    a_y_1=zeros(4,NX+8);
-    b_y_1=zeros(4,NX+8);
-
+    a_x_1=zeros(4,(NX+4+shft));
+    b_x_1=zeros(4,(NX+4+shft));
+    a_x_half_1=zeros(4,(NX+4+shft));
+    b_x_half_1=zeros(4,(NX+4+shft));
+    a_y_1=zeros(4,(NX+4+shft));
+    b_y_1=zeros(4,(NX+4+shft));
+    a_y_half_1=zeros(4,(NX+4+shft));
+    b_y_half_1=zeros(4,(NX+4+shft));
 
 % 1D arrays for the damping profiles
-    a_x_2=zeros(4,NX+8);
-    a_y_2=zeros(4,NX+8);
+    a_x_2=zeros(4,(NX+4+shft));
+    a_x_half_2=zeros(4,(NX+4+shft));
+    a_y_2=zeros(4,(NX+4+shft));
+    a_y_half_2=zeros(4,(NX+4+shft));
 
 % for receivers
     ix_rec=zeros(NREC,1);
@@ -468,36 +499,58 @@ rk42(3) = 2.d0 / 6.d0;
 rk42(4) = 1.d0 / 6.d0;
 
 ksi_x(:) = ZERO;
+ksi_x_half(:) = ZERO;
 d_x_1(:) = ZERO;
+d_x_half_1(:) = ZERO;
 K_x_1(:) = 1.d0;
+K_x_half_1(:) = 1.d0;
 alpha_x_1(:) = ZERO;
+alpha_x_half_1(:) = ZERO;
 a_x_1(:,:) = ZERO;
+a_x_half_1(:,:) = ZERO;
 g_x_1(:) = 5.d-1;
+g_x_half_1(:) = 5.d-1;
 
 ksi_y(:) = ZERO;
+ksi_y_half(:) = ZERO;
 d_y_1(:) = ZERO;
+d_y_half_1(:) = ZERO;
 K_y_1(:) = 1.d0;
+K_y_half_1(:) = 1.d0;
 alpha_y_1(:) = ZERO;
+alpha_y_half_1(:) = ZERO;
 a_y_1(:,:) = ZERO;
+a_y_half_1(:,:) = ZERO;
 g_y_1(:) = 1.d0;
+g_y_half_1(:) = 1.d0;
 
 d_x_2(:) = ZERO;
+d_x_half_2(:) = ZERO;
 K_x_2(:) = 1.d0;
+K_x_half_2(:) = 1.d0;
 alpha_x_2(:) = ZERO;
+alpha_x_half_2(:) = ZERO;
 a_x_2(:,:) = ZERO;
+a_x_half_2(:,:) = ZERO;
 g_x_2(:) = 1.d0;
+g_x_half_2(:) = 1.d0;
 
 d_y_2(:) = ZERO;
+d_y_half_2(:) = ZERO;
 K_y_2(:) = 1.d0;
+K_y_half_2(:) = 1.d0;
 alpha_y_2(:) = ZERO;
+alpha_y_half_2(:) = ZERO;
 a_y_2(:,:) = ZERO;
+a_y_half_2(:,:) = ZERO;
 g_y_2(:) = 1.d0;
+g_y_half_2(:) =1.d0;
 
 % damping in the X direction
 % origin of the PML layer (position of right edge minus thickness, in meters)
-xoriginleft = thickness_PML_x+4;
-xoriginright = (NX+4-1)*DELTAX - thickness_PML_x;
-for i = 1:NX+8
+xoriginleft = thickness_PML_x;
+xoriginright = (NX-1)*DELTAX - thickness_PML_x;
+for i = (NX+4+shft)
     % abscissa of current grid point along the damping profile
     xval = DELTAX * double(i-1);
     %---------- left edge
@@ -510,6 +563,15 @@ for i = 1:NX+8
                 % this taken from Gedney page 8.2
                 K_x_1(i) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
                 alpha_x_1(i) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
+            end
+            % define damping profile at half the grid points
+            abscissa_in_PML = xoriginleft - (xval + DELTAX/2.d0);
+            if(abscissa_in_PML >= ZERO) 
+                abscissa_normalized = abscissa_in_PML / thickness_PML_x;
+                d_x_half_1(i) = d0_x * abscissa_normalized^NPOWER;
+                % this taken from Gedney page 8.2
+                K_x_half_1(i) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
+                alpha_x_half_1(i) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
             end
         end
 
@@ -526,41 +588,64 @@ for i = 1:NX+8
             end
             % define damping profile at half the grid points
             abscissa_in_PML = xval + DELTAX/2.d0 - xoriginright;
+            if(abscissa_in_PML >= ZERO) 
+                abscissa_normalized = abscissa_in_PML / thickness_PML_x;
+                d_x_half_1(i) = d0_x * abscissa_normalized^NPOWER;
+                % this taken from Gedney page 8.2
+                K_x_half_1(i) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
+                alpha_x_half_1(i) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
+            end
         end
 
     % 1 pole
     d_x_2(i) = 0.d0;
+    d_x_half_2(i) = 0.d0;
 
     % just in case, for -5 at the end
     if(alpha_x_1(i) < ZERO) 
         alpha_x_1(i) = ZERO; 
     end
 
+    if(alpha_x_half_1(i) < ZERO) 
+        alpha_x_half_1(i) = ZERO;
+    end
 
     % just in case, for -5 at the end
     if(alpha_x_2(i) < ZERO) 
         alpha_x_2(i) = ZERO;
+    end
+    if(alpha_x_half_2(i) < ZERO) 
+        alpha_x_half_2(i) = ZERO;
     end
 
     % CPML damping parameters for the 4 sub time steps of RK4 algorithm
     for inc=1:4
         b_x_1(inc,i) =  (1.d0-epsn*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)))/ ...
         (1.d0+epsn1*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)));
-        
+        b_x_half_1(inc,i) = (1.d0-epsn*DELTAT*rk41(inc)*(d_x_half_1(i)/K_x_half_1(i) ...
+        + alpha_x_half_1(i)))/(1.d0 +epsn1*DELTAT*rk41(inc)*(d_x_half_1(i)/K_x_half_1(i) ...
+        + alpha_x_half_1(i)));
+
         % this to avoid division by zero outside the PML
         if(abs(d_x_1(i)) > 1.d-6) 
             a_x_1(inc,i) = - DELTAT*rk41(inc)*d_x_1(i) / (K_x_1(i)* K_x_1(i))/...
             (1.d0 +epsn1*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)));
+        end
+        if(abs(d_x_half_1(i)) > 1.d-6) 
+            a_x_half_1(inc,i) =-DELTAT*rk41(inc)*d_x_half_1(i)/...
+            (K_x_half_1(i)*K_x_half_1(i) )/...
+            (1.d0 +epsn1*DELTAT*rk41(inc)*(d_x_half_1(i)/K_x_half_1(i)...
+            + alpha_x_half_1(i)));
         end
     end
 end
 
 % damping in the Y direction
 % origin of the PML layer (position of right edge minus thickness, in meters)
-yoriginbottom = thickness_PML_y+4;
-yorigintop = (NY+4-1)*DELTAY - thickness_PML_y;
+yoriginbottom = thickness_PML_y;
+yorigintop = (NY-1+shft)*DELTAY - thickness_PML_y;
 
-for j = 1:NY+8
+for j = (NY+4+shft)
     % abscissa of current grid point along the damping profile
     yval = DELTAY * double(j-1);
     %---------- bottom edge
@@ -574,7 +659,16 @@ for j = 1:NY+8
                 K_y_1(j) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
                 alpha_y_1(j) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
             end
-       end
+            % define damping profile at half the grid points
+            abscissa_in_PML = yoriginbottom - (yval + DELTAY/2.d0);
+            if(abscissa_in_PML >= ZERO) 
+                abscissa_normalized = abscissa_in_PML / thickness_PML_y;
+                d_y_half_1(j) = d0_y * abscissa_normalized^NPOWER;
+                % this taken from Gedney page 8.2
+                K_y_half_1(j) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
+                alpha_y_half_1(j) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
+            end
+        end
 
     %---------- top edge
         if(USE_PML_YMAX) 
@@ -587,29 +681,49 @@ for j = 1:NY+8
                 K_y_1(j) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
                 alpha_y_1(j) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
             end
+            % define damping profile at half the grid points
+            abscissa_in_PML = yval + DELTAY/2.d0 - yorigintop;
+            if(abscissa_in_PML >= ZERO) 
+                abscissa_normalized = abscissa_in_PML / thickness_PML_y;
+                d_y_half_1(j) = d0_y * abscissa_normalized^NPOWER;
+                % this taken from Gedney page 8.2
+                K_y_half_1(j) = 1.d0 + (K_MAX_PML_1 - 1.d0) * abscissa_normalized^NPOWER2;
+                alpha_y_half_1(j) = ALPHA_MAX_PML_1 * (1.d0 - abscissa_normalized) + 0.1d0 * ALPHA_MAX_PML_1;
+            end
         end
 
     % just in case, for -5 at the end
     if(alpha_y_1(j) < ZERO) 
         alpha_y_1(j) = ZERO;
     end
+    if(alpha_y_half_1(j) < ZERO) 
+        alpha_y_half_1(j) = ZERO;
+    end
+
     % CPML damping parameters for the 4 sub time steps of RK4 algorithm
     for inc=1:4
         b_y_1(inc,j) =  (1.d0-epsn*DELTAT*rk41(inc)*(d_y_1(j)/K_y_1(j) + alpha_y_1(j)))/...
         (1.d0+epsn1*DELTAT*rk41(inc)*(d_y_1(j)/K_y_1(j) + alpha_y_1(j)));
-
+        b_y_half_1(inc,j) = (1.d0-epsn*DELTAT*rk41(inc)*(d_y_half_1(j)/K_y_half_1(j) + ...
+        alpha_y_half_1(j)))/(1.d0+epsn1*DELTAT*rk41(inc)*(d_y_half_1(j)/K_y_half_1(j)...
+        + alpha_y_half_1(j)));
         % this to avoid division by zero outside the PML
         if(abs(d_y_1(j)) > 1.d-6) 
             a_y_1(inc,j) = - DELTAT*rk41(inc)*d_y_1(j)...
             / (K_y_1(j)* K_y_1(j))/...
             (1.+epsn1*DELTAT*rk41(inc)*(d_y_1(j)/K_y_1(j) + alpha_y_1(j)));
         end
+        if(abs(d_y_half_1(j)) > 1.d-6) 
+            a_y_half_1(inc,j) = -DELTAT*rk41(inc)*d_y_half_1(j) / ...
+            (K_y_half_1(j) * K_y_half_1(j) )/ ...
+            (1.d0+epsn1*DELTAT*rk41(inc)*(d_y_half_1(j)/K_y_half_1(j) + alpha_y_half_1(j)));
+        end
     end
 end
 
 % compute the Lame parameters and density
-for j = 1:NY+8
-    for i = 1:NX+8
+for j = 1:(NY+4+shft)
+    for i = 1:(NX+4+shft)
         rho(i,j) = density;
         mu(i,j) = density*cs*cs;
         lambda(i,j) = density*(cp*cp - 2.d0*cs*cs);
@@ -640,8 +754,8 @@ end
 % find closest grid point for each receiver
 for irec=1:NREC
     dist = HUGEVAL;
-    for j = 1:NY+8
-        for i = 1:NX+8
+    for j = 1+shft:NY+shft
+        for i = 1+shft:NX+shft
             distval = sqrt((DELTAX*double(i-1) - xrec(irec))^2 + (DELTAY*double(j-1) - yrec(irec))^2);
                 if(distval < dist) 
                     dist = distval;
@@ -667,29 +781,31 @@ end
 
 % suppress old files (can be commented out if "call system" is missing in your compiler)
 % call system('rm -f Vx_*.dat Vy_*.dat image*.pnm image*.gif')
+   
+  %Set red-blue colormap for images
+  
+  CMAP=zeros(256,3);
+  cc1=[0 0 1]; %blue
+  cc2=[1 1 1]; %white
+  cc3=[1 0 0]; %red
+  for nc=1:128
+	  f=(nc-1)/128;
+	  cc=(1-sqrt(f))*cc1+sqrt(f)*cc2;
+	  CMAP(nc,:)=cc;
+	  cc=(1-f^2)*cc2+f^2*cc3;
+	  CMAP(128+nc,:)=cc;
+	end
+  colormap(CMAP);
 
 input('Run time loop?');
 %---
 %---  beginning of time loop
 %---
-%Set red-blue colormap for images
-  CMAP=zeros(256,3);
-  cm1=[0 0 1]; %blue
-  cm2=[1 1 1]; %white
-  cm3=[1 0 0]; %red
-  for nc=1:128
-	  f=(nc-1)/128;
-	  cm=(1-sqrt(f))*cm1+sqrt(f)*cm2;
-	  CMAP(nc,:)=cm;
-	  cm=(1-f^2)*cm2+f^2*cm3;
-	  CMAP(128+nc,:)=cm;
-	end
-  colormap(CMAP);
-  set(gca,'YDir','normal');
 
 for it = 1:NSTEP
 
     % v and sigma temporary variables of RK4
+
     dvx(1,:,:) = vx(:,:);
     dvy(1,:,:) = vy(:,:);
     dsigmaxx(1,:,:) = sigmaxx(:,:);
@@ -727,8 +843,8 @@ for it = 1:NSTEP
         % compute velocity
         %------------------
 
-        for j = 5:NY+5
-            for i = 5:NX+5
+        for j = 2+shft:NY+shft
+            for i = 2+shft:NX+shft
                 value_dsigmaxx_dx = ( c1 * (dsigmaxx(1,i,j) - dsigmaxx(1,i-1,j)) + c2 * (dsigmaxx(1,i+1,j) - dsigmaxx(1,i-2,j)) +  ...
                 c3 * (dsigmaxx(1,i+2,j) - dsigmaxx(1,i-3,j)) + c4 * (dsigmaxx(1,i+3,j) - dsigmaxx(1,i-4,j)) )/ DELTAX;
                 value_dsigmaxy_dy = ( c1 * (dsigmaxy(1,i,j) - dsigmaxy(1,i,j-1)) + c2* (dsigmaxy(1,i,j+1) - dsigmaxy(1,i,j-2)) +  ...
@@ -744,20 +860,22 @@ for it = 1:NSTEP
             end
         end
 
-        for j = 5:NY+5
-            for i = 5:NX+5
+        for j = 1+shft:NY-1+shft
+            for i = 1+shft:NX-1+shft
+                % interpolate density at the right location in the staggered grid cell
+                rho_half_x_half_y = 0.25d0 * (rho(i,j) + rho(i+1,j) + rho(i+1,j+1) + rho(i,j+1));
                 value_dsigmaxy_dx = ( c1 * (dsigmaxy(1,i+1,j) - dsigmaxy(1,i,j)) + c2 * (dsigmaxy(1,i+2,j) - dsigmaxy(1,i-1,j)) +  ...
                 c3 * (dsigmaxy(1,i+3,j) - dsigmaxy(1,i-2,j)) + c4 * (dsigmaxy(1,i+4,j) - dsigmaxy(1,i-3,j)) )/ DELTAX;
                 value_dsigmayy_dy = ( c1 * (dsigmayy(1,i,j+1) - dsigmayy(1,i,j)) + c2 * (dsigmayy(1,i,j+2) - dsigmayy(1,i,j-1)) +  ...
                 c3 * (dsigmayy(1,i,j+3) - dsigmayy(1,i,j-2)) + c4 * (dsigmayy(1,i,j+4) - dsigmayy(1,i,j-3)) )/ DELTAY;
                 if(i <= NPOINTS_PML+2  || i >= NX-NPOINTS_PML-2  ||  j <= NPOINTS_PML+2  ||  j >=  NY-NPOINTS_PML-2) 
-                    memory_dsigmaxy_dx_1(2,i,j) = b_x_1(inc,i) * memory_dsigmaxy_dx_1(4,i,j) + a_x_1(inc,i) * value_dsigmaxy_dx;
-                    memory_dsigmayy_dy_1(2,i,j) = b_y_1(inc,j) * memory_dsigmayy_dy_1(4,i,j) + a_y_1(inc,j) * value_dsigmayy_dy;
+                    memory_dsigmaxy_dx_1(2,i,j) = b_x_half_1(inc,i) * memory_dsigmaxy_dx_1(4,i,j) + a_x_half_1(inc,i) * value_dsigmaxy_dx;
+                    memory_dsigmayy_dy_1(2,i,j) = b_y_half_1(inc,j) * memory_dsigmayy_dy_1(4,i,j) + a_y_half_1(inc,j) * value_dsigmayy_dy;
 
-                    value_dsigmaxy_dx = value_dsigmaxy_dx/K_x_1(i)+memory_dsigmaxy_dx_1(1,i,j);
-                    value_dsigmayy_dy = value_dsigmayy_dy/K_y_1(j)+memory_dsigmayy_dy_1(1,i,j);
+                    value_dsigmaxy_dx = value_dsigmaxy_dx/K_x_half_1(i)+memory_dsigmaxy_dx_1(1,i,j);
+                    value_dsigmayy_dy = value_dsigmayy_dy/K_y_half_1(j)+memory_dsigmayy_dy_1(1,i,j);
                 end
-                dvy(2,i,j) = (value_dsigmaxy_dx + value_dsigmayy_dy) / rho(i,j);
+                dvy(2,i,j) = (value_dsigmaxy_dx + value_dsigmayy_dy) / rho_half_x_half_y;
             end
         end
 
@@ -778,80 +896,69 @@ for it = 1:NSTEP
         force_y = cos(ANGLE_FORCE * DEGREES_TO_RADIANS) * source_term;
 
         % define location of the source
-        i = ISOURCE+4;
-        j = JSOURCE+4;
-        
-         if EXPLOSIVE_SOURCE
-            source_term = factor * (1.d0 - 2.d0*a*(t-t0)^2)*exp(-a*(t-t0)^2);
-            force_x = source_term;
-            force_y = source_term;
-            sigmaxx(i,j)=sigmaxx(i,j)+force_x;
-            sigmayy(i,j)=sigmayy(i,j)+force_y;
-         end
-         
-         if ~EXPLOSIVE_SOURCE
-            dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
-            dvy(2,i,j) = dvy(2,i,j) + force_y / rho(i,j);
-%             vx(i,j) = vx(i,j) + force_x * DELTAT / rho(i,j);
-%             vy(i,j) = vy(i,j) + force_y * DELTAT / rho_half_x_half_y;
-         end
+        i = ISOURCE+shft;
+        j = JSOURCE+shft;
 
+        % interpolate density at the right location in the staggered grid cell
+        rho_half_x_half_y = 0.25d0 * (rho(i,j) + rho(i+1,j) + rho(i+1,j+1) + rho(i,j+1));
 
+        dvx(2,i,j) = dvx(2,i,j) + force_x  / rho(i,j);
+        dvy(2,i,j) = dvy(2,i,j) + force_y / rho_half_x_half_y;
 
         % Dirichlet conditions (rigid boundaries) on all the edges of the grid
-        dvx(:,1:5,:) = ZERO;
-        dvx(:,(NX+4):(NX+8),:) = ZERO;
+        dvx(:,(1+shft),:) = ZERO;
+        dvx(:,(NX+shft):(NX+4+shft),:) = ZERO;
 
-        dvx(:,:,1:5) = ZERO;
-        dvx(:,:,(NY+4):(NY+8)) = ZERO;
+        dvx(:,:,(1+shft)) = ZERO;
+        dvx(:,:,(NY+shft):(NY+4+shft)) = ZERO;
 
-        dvy(:,1:5,:) = ZERO;
-        dvy(:,(NX+4):(NX+8),:) = ZERO;
+        dvy(:,(1+shft),:) = ZERO;
+        dvy(:,(NX+shft):(NX+4+shft),:) = ZERO;
 
-        dvy(:,:,1:5) = ZERO;
-        dvy(:,:,(NY+4):(NY+8)) = ZERO;
+        dvy(:,:,(1+shft)) = ZERO;
+        dvy(:,:,(NY+shft):(NY+4+shft)) = ZERO;
 
         %----------------------
         % compute stress sigma
         %----------------------
 
-        for j = 5:NY+4
-            for i = 5:NX+4
+        for j = 2+shft:NY+shft
+            for i = 1+shft:NX-1+shft
                 % interpolate material parameters at the right location in the staggered grid cell
-                lambdav = lambda(i,j);
-                muv = mu(i,j);
-                lambda_plus_two_mu = lambdav + 2.d0 * muv;
+                lambda_half_x = 0.5d0 * (lambda(i+1,j) + lambda(i,j));
+                mu_half_x = 0.5d0 * (mu(i+1,j) + mu(i,j));
+                lambda_plus_two_mu_half_x = lambda_half_x + 2.d0 * mu_half_x;
                 value_dvx_dx = ( c1 * (dvx(1,i+1,j) - dvx(1,i,j)) + c2 * (dvx(1,i+2,j) - dvx(1,i-1,j)) +  ...
                 c3 * (dvx(1,i+3,j) - dvx(1,i-2,j)) + c4 * (dvx(1,i+4,j) - dvx(1,i-3,j)) )/ DELTAX;
                 value_dvy_dy = ( c1 * (dvy(1,i,j) - dvy(1,i,j-1)) + c2 * (dvy(1,i,j+1) - dvy(1,i,j-2)) +  ...
                 c3 * (dvy(1,i,j+2) - dvy(1,i,j-3)) + c4 * (dvy(1,i,j+3) - dvy(1,i,j-4)) )/ DELTAY;
                 if(i <= NPOINTS_PML+2  || i >= NX-NPOINTS_PML-2  ||  j <= NPOINTS_PML+2  ||  j >=  NY-NPOINTS_PML-2) 
-                    memory_dvx_dx_1(2,i,j) = b_x_1(inc,i) * memory_dvx_dx_1(4,i,j) + a_x_1(inc,i) * value_dvx_dx;
+                    memory_dvx_dx_1(2,i,j) = b_x_half_1(inc,i) * memory_dvx_dx_1(4,i,j) + a_x_half_1(inc,i) * value_dvx_dx;
                     memory_dvy_dy_1(2,i,j) = b_y_1(inc,j) * memory_dvy_dy_1(4,i,j) + a_y_1(inc,j) * value_dvy_dy;
 
-                    value_dvx_dx = value_dvx_dx / K_x_1(i)  + memory_dvx_dx_1(1,i,j);
+                    value_dvx_dx = value_dvx_dx / K_x_half_1(i)  + memory_dvx_dx_1(1,i,j);
                     value_dvy_dy = value_dvy_dy / K_y_1(j) + memory_dvy_dy_1(1,i,j);
                 end
-                dsigmaxx(2,i,j) = (lambda_plus_two_mu * value_dvx_dx + lambdav * value_dvy_dy);
-                dsigmayy(2,i,j) =  (lambdav * value_dvx_dx + lambda_plus_two_mu * value_dvy_dy);
+                dsigmaxx(2,i,j) = (lambda_plus_two_mu_half_x * value_dvx_dx + lambda_half_x * value_dvy_dy);
+                dsigmayy(2,i,j) =  (lambda_half_x * value_dvx_dx + lambda_plus_two_mu_half_x * value_dvy_dy);
             end
         end
 
-        for j = 5:NY+4
-            for i = 5:NX+4
+        for j = 1+shft:NY-1+shft
+            for i = 2+shft:NX+shft
                 % interpolate material parameters at the right location in the staggered grid cell
-                muv =mu(i,j);
+                mu_half_y = 0.5d0 * (mu(i,j+1) + mu(i,j));
                 value_dvx_dy = ( c1 * (dvx(1,i,j+1) - dvx(1,i,j)) + c2 * (dvx(1,i,j+2) - dvx(1,i,j-1)) +   ...
                 c3 * (dvx(1,i,j+3) - dvx(1,i,j-2)) + c4 * (dvx(1,i,j+4) - dvx(1,i,j-3)) )/ DELTAY;
                 value_dvy_dx = ( c1 * (dvy(1,i,j) - dvy(1,i-1,j)) + c2 * (dvy(1,i+1,j) - dvy(1,i-2,j)) +  ...
                 c3 * (dvy(1,i+2,j) - dvy(1,i-3,j)) + c4 * (dvy(1,i+3,j) - dvy(1,i-4,j)) )/ DELTAX;
                 if(i <= NPOINTS_PML+2  || i >= NX-NPOINTS_PML-2  ||  j <= NPOINTS_PML+2  ||  j >=  NY-NPOINTS_PML-2) 
                     memory_dvy_dx_1(2,i,j) = b_x_1(inc,i) * memory_dvy_dx_1(4,i,j) + a_x_1(inc,i) * value_dvy_dx;
-                    memory_dvx_dy_1(2,i,j) = b_y_1(inc,j) * memory_dvx_dy_1(4,i,j) + a_y_1(inc,j) * value_dvx_dy;
+                    memory_dvx_dy_1(2,i,j) = b_y_half_1(inc,j) * memory_dvx_dy_1(4,i,j) + a_y_half_1(inc,j) * value_dvx_dy;
                     value_dvy_dx = value_dvy_dx / K_x_1(i)  + memory_dvy_dx_1(1,i,j);
-                    value_dvx_dy = value_dvx_dy / K_y_1(j) + memory_dvx_dy_1(1,i,j);
+                    value_dvx_dy = value_dvx_dy / K_y_half_1(j) + memory_dvx_dy_1(1,i,j);
                 end
-                dsigmaxy(2,i,j) = muv * (value_dvy_dx + value_dvx_dy);
+                dsigmaxy(2,i,j) = mu_half_y * (value_dvy_dx + value_dvx_dy);
             end
         end
 
@@ -872,27 +979,27 @@ for it = 1:NSTEP
         memory_dvy_dx_1(1,:,:) = memory_dvy_dx_1(2,:,:);
 
         % Dirichlet conditions (rigid boundaries) on all the edges of the grid
-        dvx(:,1:5,:) = ZERO;
-        dvx(:,(NX+4):(NX+8),:) = ZERO;
+        dvx(:,(1+shft),:) = ZERO;
+        dvx(:,(NX+shft):(NX+4+shft),:) = ZERO;
 
-        dvx(:,:,1:5) = ZERO;
-        dvx(:,:,(NY+4):(NY+8)) = ZERO;
+        dvx(:,:,(1+shft)) = ZERO;
+        dvx(:,:,(NY+shft):(NY+4+shft)) = ZERO;
 
-        dvy(:,1:5,:) = ZERO;
-        dvy(:,(NX+4):(NX+8),:) = ZERO;
+        dvy(:,(1+shft),:) = ZERO;
+        dvy(:,(NX+shft):(NX+4+shft),:) = ZERO;
 
-        dvy(:,:,1:5) = ZERO;
-        dvy(:,:,(NY+4):(NY+8)) = ZERO;
+        dvy(:,:,(1+shft)) = ZERO;
+        dvy(:,:,(NY+shft):(NY+4+shft)) = ZERO;
 
-        vx(1:5,:) = ZERO;
-        vx(:,1:5) = ZERO;
-        vy(1:5,:) = ZERO;
-        vy(:,1:5) = ZERO;
+        vx((1+shft),:) = ZERO;
+        vx(:,(1+shft)) = ZERO;
+        vy((1+shft),:) = ZERO;
+        vy(:,(1+shft)) = ZERO;
 
-        vx((NX+4):(NX+8),:) = ZERO;
-        vx(:,(NY+4):(NY+8)) = ZERO;
-        vy((NX+4):(NX+8),:) = ZERO;
-        vy(:,(NY+4):(NY+8)) = ZERO;
+        vx((NX+shft):(NX+4+shft),:) = ZERO;
+        vx(:,(NY+shft):(NY+4+shft)) = ZERO;
+        vy((NX+shft):(NX+4+shft),:) = ZERO;
+        vy(:,(NY+shft):(NY+4+shft)) = ZERO;
     end
 
     vx(:,:) =  dvx(1,:,:);
@@ -915,7 +1022,7 @@ for it = 1:NSTEP
     % compute total energy in the medium (without the PML layers)
 
     % compute kinetic energy first, defined as 1/2 rho ||v||^2
-    % in principle we should use rho_x_y instead of rho for vy
+    % in principle we should use rho_half_x_half_y instead of rho for vy
     % in order to interpolate density at the right location in the staggered grid cell
     % but in a homogeneous medium we can safely ignore it
 %     total_energy_kinetic(it) = 0.5d0 * sum(  ...
@@ -926,18 +1033,18 @@ for it = 1:NSTEP
     % add potential energy, defined as 1/2 epsilon_ij sigma_ij
     % in principle we should interpolate the medium parameters at the right location
     % in the staggered grid cell but in a homogeneous medium we can safely ignore it
-    %total_energy_potential(it) = ZERO;
-    for j = NPOINTS_PML+1: NY-NPOINTS_PML
-        for i = NPOINTS_PML+1: NX-NPOINTS_PML
-            epsilon_xx = ((lambda(i,j) + 2.d0*mu(i,j)) * sigmaxx(i,j) - lambda(i,j) *  ...
-            sigmayy(i,j)) / (4.d0 * mu(i,j) * (lambda(i,j) + mu(i,j)));
-            epsilon_yy = ((lambda(i,j) + 2.d0*mu(i,j)) * sigmayy(i,j) - lambda(i,j) *  ...
-            sigmaxx(i,j)) / (4.d0 * mu(i,j) * (lambda(i,j) + mu(i,j)));
-            epsilon_xy = sigmaxy(i,j) / (2.d0 * mu(i,j));
+%     total_energy_potential(it) = ZERO;
+%     for j = NPOINTS_PML+1: NY-NPOINTS_PML
+%         for i = NPOINTS_PML+1: NX-NPOINTS_PML
+%             epsilon_xx = ((lambda(i,j) + 2.d0*mu(i,j)) * sigmaxx(i,j) - lambda(i,j) *  ...
+%             sigmayy(i,j)) / (4.d0 * mu(i,j) * (lambda(i,j) + mu(i,j)));
+%             epsilon_yy = ((lambda(i,j) + 2.d0*mu(i,j)) * sigmayy(i,j) - lambda(i,j) *  ...
+%             sigmaxx(i,j)) / (4.d0 * mu(i,j) * (lambda(i,j) + mu(i,j)));
+%             epsilon_xy = sigmaxy(i,j) / (2.d0 * mu(i,j));
 %             total_energy_potential(it) = total_energy_potential(it) +  ...
 %             0.5d0 * (epsilon_xx * sigmaxx(i,j) + epsilon_yy * sigmayy(i,j) + 2.d0 * epsilon_xy * sigmaxy(i,j));
-        end
-    end
+%         end
+%     end
 
     % output information
     if(mod(it,IT_DISPLAY) == 0 || it == 5) 
@@ -976,9 +1083,10 @@ for it = 1:NSTEP
 
         if(SAVE_VY_JPG)
             clf;	%clear current frame
-            imagesc(nx_vec,ny_vec,vy(5:NX+4,5:NY+4)'); 
+            imagesc(nx_vec,ny_vec,vy(1+shft:NX+shft,1+shft:NX+shft)'); 
             xlabel('m');
             ylabel('m');
+            colorbar();
             set(gca,'YDir','normal');
             drawnow; hold on;
             if SHOW_SOURCE_POSITION
