@@ -17,7 +17,7 @@
 %To test:
 %[ksi,eta, gr_x,gr_y,J, Ji] = func_curv_jacob_pml(30,30,5,0,100, 0, 100,'-(2*pi*x/max(x)+0.25*pi)',10,10,true)
 
-function [ksi,eta,xx,yy,J,Ji] = func_curv_jacob_pml(nx,ny,npml,xmin,xmax,ymin,ymax,argument,dxx,dyy,showornot)
+function [ksi,eta,xx,yy] = func_curv_jacob_pml(nx,ny,npml,xmin,xmax,ymin,ymax,argument,dxx,dyy,showornot)
 
 dxxt=xmax/nx;
 dyyt=ymax/ny;
@@ -126,24 +126,24 @@ if showornot
 end
 %--------------------------------------------------------------------------
 %Derivatives and Jacobian
-J=zero(nx,ny);
-Ji=zero(nx,ny);
-for i=2:nx+1
-    for j=2:ny+1
-        dksi_dx=(ksi(i,j)-ksi(i-1,j))/(xx(i,j)-xx(i-1,j));
-        dksi_dy=(ksi(i,j)-ksi(i,j-1))/(yy(i,j)-yy(i,j-1));
-        deta_dx=(eta(i,j)-eta(i-1,j))/(xx(i,j)-xx(i-1,j));
-        deta_dy=(eta(i,j)-eta(i,j-1))/(yy(i,j)-yy(i,j-1));
-        J(i-1,j-1)=dksi_dx*deta_dy-dksi_dy*deta_dx;
-        
-        dx_dksi=(xx(i,j)-xx(i-1,j))/(ksi(i,j)-ksi(i-1,j));
-        dy_dksi=(yy(i,j)-yy(i,j-1))/(ksi(i,j)-ksi(i,j-1));
-        dx_deta=(xx(i,j)-xx(i-1,j))/(eta(i,j)-eta(i-1,j));
-        dy_deta=(yy(i,j)-yy(i,j-1))/(eta(i,j)-eta(i,j-1));
-        Ji(i-1,j-1)=dx_dksi*dy_deta-dx_deta*dy_dksi;
-    end
-end
-fprintf('Jacobian cell-array %d x %d created\n',size(J,1),size(J,2));
+% J=zeros(nx,ny);
+% Ji=zeros(nx,ny);
+% for i=2:nx+1
+%     for j=2:ny+1
+%         dksi_dx=(ksi(i,j)-ksi(i-1,j))/(xx(i,j)-xx(i-1,j));
+%         dksi_dy=(ksi(i,j)-ksi(i,j-1))/(yy(i,j)-yy(i,j-1));
+%         deta_dx=(eta(i,j)-eta(i-1,j))/(xx(i,j)-xx(i-1,j));
+%         deta_dy=(eta(i,j)-eta(i,j-1))/(yy(i,j)-yy(i,j-1));
+%         J(i-1,j-1)=dksi_dx*deta_dy-dksi_dy*deta_dx;
+%         
+%         dx_dksi=(xx(i,j)-xx(i-1,j))/(ksi(i,j)-ksi(i-1,j));
+%         dy_dksi=(yy(i,j)-yy(i,j-1))/(ksi(i,j)-ksi(i,j-1));
+%         dx_deta=(xx(i,j)-xx(i-1,j))/(eta(i,j)-eta(i-1,j));
+%         dy_deta=(yy(i,j)-yy(i,j-1))/(eta(i,j)-eta(i,j-1));
+%         Ji(i-1,j-1)=dx_dksi*dy_deta-dx_deta*dy_dksi;
+%     end
+% end
+%fprintf('Jacobian cell-array %d x %d created\n',size(J,1),size(J,2));
 disp('Finished');
 end
 

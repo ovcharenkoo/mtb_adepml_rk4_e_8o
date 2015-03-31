@@ -99,14 +99,20 @@ WBdksi=@(i,j,f) (-am1*f(i+1,j)-a0*f(i,j)-a1*f(i-1,j)-a2*f(i-2,j)-a3*f(i-3,j))/DE
 WFdeta=@(i,j,f) (am1*f(i,j-1)+a0*f(i,j)+a1*f(i,j+1)+a2*f(i,j+2)+a3*f(i,j+3))/DELTAY;
 WBdeta=@(i,j,f) (-am1*f(i,j+1)-a0*f(i,j)-a1*f(i,j-1)-a2*f(i,j-2)-a3*f(i,j-3))/DELTAY;
 
-LFF=@(i,j,f) A*WFdksi(i,j,f)+B*WFdeta(i,j,f);
-LBB=@(i,j,f) A*WBdksi(i,j,f)+B*WBdeta(i,j,f);
-LFB=@(i,j,f) A*WFdksi(i,j,f)+B*WBdeta(i,j,f);
-LBF=@(i,j,f) A*WBdksi(i,j,f)+B*WFdeta(i,j,f);
+LFF=@(i,j,f,A,B) A*WFdksi(i,j,f)+B*WFdeta(i,j,f);
+LBB=@(i,j,f,A,B) A*WBdksi(i,j,f)+B*WBdeta(i,j,f);
+LFB=@(i,j,f,A,B) A*WFdksi(i,j,f)+B*WBdeta(i,j,f);
+LBF=@(i,j,f,A,B) A*WBdksi(i,j,f)+B*WFdeta(i,j,f);
+
+% LFF=@(A,B,WFdksiv,WFdetav) A*WFdksiv+B*WFdetav;
+% LBB=@(A,B,WBdksiv,WBdetav) A*WBdksiv+B*WBdetav;
+% LFB=@(A,B,WFdksiv,WBdetav) A*WFdksiv+B*WBdetav;
+% LBF=@(A,B,WBdksiv,WFdetav) A*WBdksiv+B*WFdetav;
 
 %Generate grids
 sphi='-(1.25*pi*x/max(x)+0.25*pi)'; %sting argument for curved interface
-[gx,gy, ksi,eta,J, Ji] = func_curv_jacob_pml(NX,NY,0,0,NX*DELTAX, 0, NY*DELTAY,sphi,DELTAX,DELTAY,false);
+[gx,gy, ksi,eta] = func_curv_jacob_pml(NX,NY,0,0,NX*DELTAX, 0, NY*DELTAY,sphi,DELTAX,DELTAY,false);
+[gxr,gyr, ksir,etar] = func_curv_jacob_pml(2*NX,2*NY,0,0,NX*DELTAX, 0, (NY-1)*DELTAY,sphi,DELTAX/2,DELTAY/2,false);
 
 %FINISH THIS STUFF WITH DERIVATIVES
 dksi_dx=0;
@@ -114,40 +120,82 @@ dksi_dy=0;
 
 deta_dx=0;
 deta_dy=0;
+%Temporary arrays for RK
+vxtmp=zeros((NX+4+shft),(NY+4+shft));
+vytmp=zeros((NX+4+shft),(NY+4+shft));
+sigmaxxtmp=zeros((NX+4+shft),(NY+4+shft));
+sigmayytmp=zeros((NX+4+shft),(NY+4+shft));
+sigmaxytmp=zeros((NX+4+shft),(NY+4+shft));
 
 for it=1:NSTEP
-    for i=(1+shft):(NX+shft)
-        for j=(1+shft):(NY+shft)
+     for i=(1+shft):(NX+shft)
+         for j=(1+shft):(NY+shft)
             
-            dvx=vx(i,j);
-            dvy=vy(i,j);
-            dsigmaxx=sigmaxx(i,j);
-            dsigmayy=sigmayy(i,j);
-            dsigmaxy=sigmaxy(i,j);
-            
-            U=[dvx, dvy, dsigmaxx, dsigmayy, dsigmaxy]';
+%             fdvx_dksi=WFdksi(i,j,vx);
+%             fdvy_dksi=WFdksi(i,j,vy);
+%             fsigmaxx_dksi=WFdksi(i,j,sigmaxx);
+%             fsigmayy_dksi=WFdksi(i,j,sigmayy);
+%             fsigmaxy_dksi=WFdksi(i,j,sigmaxy);
+%             Uf_dksi=[fdvx_dksi, fdvy_dksi, fdsigmaxx_dksi, fdsigmayy_dksi, fdsigmaxy_dksi]';
+%                         
+%             bdvx_dksi=WBdksi(i,j,vx);
+%             bdvy_dksi=WBdksi(i,j,vy);
+%             bsigmaxx_dksi=WBdksi(i,j,sigmaxx);
+%             bsigmayy_dksi=WBdksi(i,j,sigmayy);
+%             bsigmaxy_dksi=WBdksi(i,j,sigmaxy);
+%             Ub_dksi=[bdvx_dksi, bdvy_dksi, bdsigmaxx_dksi, bdsigmayy_dksi, bdsigmaxy_dksi]';
+%             
+%             %-------------------------------------------------
+%             %dEta
+%             fdvx_deta=WFdeta(i,j,vx);
+%             fdvy_deta=WFdeta(i,j,vy);
+%             fsigmaxx_deta=WFdeta(i,j,sigmaxx);
+%             fsigmayy_deta=WFdeta(i,j,sigmayy);
+%             fsigmaxy_deta=WFdeta(i,j,sigmaxy);
+%             Uf_deta=[fdvx_deta, fdvy_deta, fdsigmaxx_deta, fdsigmayy_deta, fdsigmaxy_deta]';
+%                         
+%             bdvx_deta=WBdeta(i,j,vx);
+%             bdvy_deta=WBdeta(i,j,vy);
+%             bsigmaxx_deta=WBdeta(i,j,sigmaxx);
+%             bsigmayy_deta=WBdeta(i,j,sigmayy);
+%             bsigmaxy_deta=WBdeta(i,j,sigmaxy);
+%             Ub_deta=[bdvx_deta, bdvy_deta, bdsigmaxx_deta, bdsigmayy_deta, bdsigmaxy_deta]';
+%             
             lambdav=lambda(i,j);
             muv=mu(i,j);
-            rhov=rho(i,j);
+            rho=rho(i,j);
             lambda_plus_two_mu=lambdav+2*muv;
+            
+            U=[vx vy sigmaxx sigmayy sigmaxy];
 
-            A=[0 0 dksi_dx/rhov 0 dksi_dy/rhov;
-               0 0 0 dksi_dy/rhov dksi_dx/rhov;
+            A=[0 0 dksi_dx/rho 0 dksi_dy/rho;
+               0 0 0 dksi_dy/rho dksi_dx/rho;
                lambda_plus_two_mu*dksi_dx lambdav*dksi_dy 0 0 0;
                lambdav*dksi_dx lambda_plus_two_mu*dksi_dy 0 0 0;
                muv*dksi_dy muv*dksi_dx 0 0 0];
 
-            B=[0 0 deta_dx/rhov 0 deta_dy/rhov;
-               0 0 0 deta_dy/rhov deta_dx/rhov;
+            B=[0 0 deta_dx/rho 0 deta_dy/rho;
+               0 0 0 deta_dy/rho deta_dx/rho;
                lambda_plus_two_mu*deta_dx lambdav*deta_dy 0 0 0;
-               lambdav*deta_dx lambda_plus_two_mu*deta_dy 0 0 0
+               lambdav*deta_dx lambdaU_plus_two_mu*deta_dy 0 0 0
                muv*deta_dy muv*deta_dx 0 0 0];
             
-            h1=dt*LFF(i,j,U);
-            h2=dt*LBB(i,j,U+alp(2)*h1);
-            h3=dt*LFF(i,j,U+alp(3)*h2);
-            h4=dt*LBB(i,j,U+alp(4)*h3);
+            h1=DELTAT*LFF(i,j,U,A,B);
+            h2=DELTAT*LBB(i,j,U+alp(2)*h1,A,B);
+            h3=DELTAT*LFF(i,j,U+alp(3)*h2,A,B);
+            h4=DELTAT*LBB(i,j,U+alp(4)*h3,A,B);
             U=U+beta(1)*h1+beta(2)*h2+beta(3)*h3+beta(4)*h4;
+
+% LFF=@(A,B,WFdksiv,WFdetav) A*WFdksiv+B*WFdetav;
+% LBB=@(A,B,WBdksiv,WBdetav) A*WBdksiv+B*WBdetav;
+% LFB=@(A,B,WFdksiv,WBdetav) A*WFdksiv+B*WBdetav;
+% LBF=@(A,B,WBdksiv,WFdetav) A*WBdksiv+B*WFdetav;
+%             h1=DELTAT*LFF(A,B,Uf_dksi,Uf_deta);
+%             h2=DELTAT*LBB(i,j,U+alp(2)*h1,A,B);
+%             h3=DELTAT*LFF(i,j,U+alp(3)*h2,A,B);
+%             h4=DELTAT*LBB(i,j,U+alp(4)*h3,A,B);
+%             U=U+beta(1)*h1+beta(2)*h2+beta(3)*h3+beta(4)*h4;
+
             
             % add the source (force vector located at a given grid point)
             t = (double(it-1)) * DELTAT;
@@ -157,12 +205,29 @@ for it=1:NSTEP
                 sigmaxx(ISOURCE+shft,JSOURCE+shft)=sigmaxx(ISOURCE+shft,JSOURCE+shft)- factorexp * 2.d0*a*(t-texp)*exp(-a*(t-texp)^2);
                 sigmayy(ISOURCE+shft,JSOURCE+shft)=sigmayy(ISOURCE+shft,JSOURCE+shft)- factorexp * 2.d0*a*(t-texp)*exp(-a*(t-texp)^2);
             end
+            
+            vx(i,j)=U(1);
+            vy(i,j)=U(2);
+            sigmaxx(i,j)=U(3);
+            sigmayy(i,j)=U(4);
+            sigmaxy(i,j)=U(5);
         end
         %------------------------------
         %end of Y loop
     end
     %------------------------------
     %end of X loop
+    %Dirichlet BC
+    vx((1+shft),:) = ZERO;
+    vx(:,(1+shft)) = ZERO;
+    vy((1+shft),:) = ZERO;
+    vy(:,(1+shft)) = ZERO;
+
+    vx((NX+shft):(NX+4+shft),:) = ZERO;
+    vx(:,(NY+shft):(NY+4+shft)) = ZERO;
+    vy((NX+shft):(NX+4+shft),:) = ZERO;
+    vy(:,(NY+shft):(NY+4+shft)) = ZERO;
+    
     if(mod(it,IT_DISPLAY) == 0 || it == 5) 
         clf;
         v=vy;
