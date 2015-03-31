@@ -1,4 +1,4 @@
-%Constructs curvilinear mesh with regular regions for pmls and its Cartesian analogus. Calculates
+%Constructs curvilinear mesh with regular regions for pmls and its Cartesian analogus. Calculates 
 %Jacobian 
 % J=[dksi_dx dksi_dy;
 %    deta_dx deta_dy];

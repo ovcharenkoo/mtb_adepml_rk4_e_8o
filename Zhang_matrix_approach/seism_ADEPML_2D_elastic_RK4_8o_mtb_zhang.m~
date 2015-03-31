@@ -1,4 +1,4 @@
-% 
+%
 % Copyright Universite de Pau et des Pays de l'Aforur, CNRS and INRIA, France.
 % Contributor: Roland Martin, roland forT martin aT univ-pau forT fr
 %
@@ -736,10 +736,10 @@ a2=-0.334;
 a3=0.04168;
 
 %Forward and backward difference operators
-% WFdksi=@(i,j,n,f) (am1*f(n,i-1,j)+a0*f(n,i,j)+a1*f(n,i+1,j)+a2*f(n,i+2,j)+a3*f(n,i+3,j))/DELTAX;
-% WBdksi=@(i,j,n,f) (-am1*f(n,i+1,j)-a0*f(n,i,j)-a1*f(n,i-1,j)-a2*f(n,i-2,j)-a3*f(n,i-3,j))/DELTAX;
-% WFdeta=@(i,j,n,f) (am1*f(n,i,j-1)+a0*f(n,i,j)+a1*f(n,i,j+1)+a2*f(n,i,j+2)+a3*f(n,i,j+3))/DELTAY;
-% WBdeta=@(i,j,n,f) (-am1*f(n,i,j+1)-a0*f(n,i,j)-a1*f(n,i,j-1)-a2*f(n,i,j-2)-a3*f(n,i,j-3))/DELTAY;
+WFdksi=@(i,j,n,f) (am1*f(n,i-1,j)+a0*f(n,i,j)+a1*f(n,i+1,j)+a2*f(n,i+2,j)+a3*f(n,i+3,j))/DELTAX;
+WBdksi=@(i,j,n,f) (-am1*f(n,i+1,j)-a0*f(n,i,j)-a1*f(n,i-1,j)-a2*f(n,i-2,j)-a3*f(n,i-3,j))/DELTAX;
+WFdeta=@(i,j,n,f) (am1*f(n,i,j-1)+a0*f(n,i,j)+a1*f(n,i,j+1)+a2*f(n,i,j+2)+a3*f(n,i,j+3))/DELTAY;
+WBdeta=@(i,j,n,f) (-am1*f(n,i,j+1)-a0*f(n,i,j)-a1*f(n,i,j-1)-a2*f(n,i,j-2)-a3*f(n,i,j-3))/DELTAY;
 
 for it = 1:NSTEP
 tic;
@@ -950,11 +950,11 @@ tic;
         end
         
         % The new values of the different variables v and sigma are computed
-        dvx(1,:,:) = dvx(6,:,:) + rk41(inc) * dvx(2,:,:) * DELTAT;
-        dvy(1,:,:) = dvy(6,:,:) + rk41(inc) * dvy(2,:,:) * DELTAT;
-        dsigmaxx(1,:,:) = dsigmaxx(6,:,:) + rk41(inc) * dsigmaxx(2,:,:) * DELTAT;
-        dsigmayy(1,:,:) = dsigmayy(6,:,:) + rk41(inc) * dsigmayy(2,:,:) * DELTAT;
-        dsigmaxy(1,:,:) = dsigmaxy(6,:,:) + rk41(inc) * dsigmaxy(2,:,:) * DELTAT;
+        dvx(1,:,:) = dvx(4,:,:) + rk41(inc) * dvx(2,:,:) * DELTAT;
+        dvy(1,:,:) = dvy(4,:,:) + rk41(inc) * dvy(2,:,:) * DELTAT;
+        dsigmaxx(1,:,:) = dsigmaxx(4,:,:) + rk41(inc) * dsigmaxx(2,:,:) * DELTAT;
+        dsigmayy(1,:,:) = dsigmayy(4,:,:) + rk41(inc) * dsigmayy(2,:,:) * DELTAT;
+        dsigmaxy(1,:,:) = dsigmaxy(4,:,:) + rk41(inc) * dsigmaxy(2,:,:) * DELTAT;
 
         memory_dsigmaxx_dx_1(1,:,:) = memory_dsigmaxx_dx_1(2,:,:);
         memory_dsigmaxy_dy_1(1,:,:) = memory_dsigmaxy_dy_1(2,:,:);
