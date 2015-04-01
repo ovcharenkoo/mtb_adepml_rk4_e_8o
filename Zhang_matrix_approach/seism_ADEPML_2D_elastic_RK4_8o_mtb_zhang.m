@@ -213,9 +213,9 @@ shft=5;
     
 
 % Explicit (epsn=1,epsn=0), Implicit (epsn=0,epsn1=1), semi-implicit (epsn=0.5,epsn1=0.5)
-    iexpl=1;
+    iexpl=0;
     iimpl=0;
-    isemiimpl=0;
+    isemiimpl=1;
 
 % size of a grid cell
     DELTAX = 10.d0;
@@ -225,14 +225,14 @@ shft=5;
     ny_vec=1:NY*DELTAY;
     
 % flags to add PML layers to the edges of the grid
-    USE_PML_XMIN = false;
-    USE_PML_XMAX = false;
-    USE_PML_YMIN = false;
-    USE_PML_YMAX = false;
+    USE_PML_XMIN = true;
+    USE_PML_XMAX = true;
+    USE_PML_YMIN = true;
+    USE_PML_YMAX = true;
 
 % thickness of the PML layer in grid points. 8th order in space imposes to
 % increase the thickness of the CPML
-    NPOINTS_PML = 10;
+    NPOINTS_PML = 20;
 
 % P-velocity, S-velocity and density
     cp = 3300.d0;
