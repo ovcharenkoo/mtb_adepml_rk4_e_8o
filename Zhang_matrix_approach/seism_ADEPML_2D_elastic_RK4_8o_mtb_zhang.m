@@ -1,4 +1,4 @@
-% 
+%Tam Webb 1993 
 % Copyright Universite de Pau et des Pays de l'Aforur, CNRS and INRIA, France.
 % Contributor: Roland Martin, roland forT martin aT univ-pau forT fr
 %
@@ -179,7 +179,7 @@ shft=5;
 %Use explosive source or gaussian?
     EXPLOSIVE_SOURCE=true;
     % parameters for the explosivesource
-    fexp = 40.d0;
+    fexp = 20.d0;
     texp = 1.20d0 / fexp;
     factorexp = 1.d4;
 %FE boundary
@@ -307,10 +307,8 @@ JSOURCE=round(NY/2)+shft;
     c4 = -3.570998d-3;
 
 % RK4 scheme coefficients, 2 per subloop, 8 in total
-%    rk41=zeros(4,1);
-%    rk42=zeros(4,1);
-    rk41=zeros(6,1);
-    rk42=zeros(6,1);
+    rk41=zeros(4,1);
+    rk42=zeros(4,1);
 % main arrays
     lambda=zeros((NX+4+shft),(NY+4+shft));
     mu=zeros((NX+4+shft),(NY+4+shft));
@@ -323,11 +321,11 @@ JSOURCE=round(NY/2)+shft;
 
 % variables are stored in four indices in the first dimension to implement RK4
 % dv fores not always indicate a derivative
-    dvx=zeros(6,(NX+4+shft),(NY+4+shft));
-    dvy=zeros(6,(NX+4+shft),(NY+4+shft));
-    dsigmaxx=zeros(6,(NX+4+shft),(NY+4+shft));
-    dsigmayy=zeros(6,(NX+4+shft),(NY+4+shft));
-    dsigmaxy=zeros(6,(NX+4+shft),(NY+4+shft));
+    dvx=zeros(4,(NX+4+shft),(NY+4+shft));
+    dvy=zeros(4,(NX+4+shft),(NY+4+shft));
+    dsigmaxx=zeros(4,(NX+4+shft),(NY+4+shft));
+    dsigmayy=zeros(4,(NX+4+shft),(NY+4+shft));
+    dsigmaxy=zeros(4,(NX+4+shft),(NY+4+shft));
 
 
 
@@ -350,23 +348,23 @@ JSOURCE=round(NY/2)+shft;
 % could declare these arrays in PML only to save a lot of memory, but proof of concept only here
 % We have as many memory variables as the number of frequency shift poles in the CPML
 % Indices are 1 and 2 for the 2 frequency shift poles
-    memory_dvx_dx_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dvx_dy_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dvy_dx_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dvy_dy_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmaxx_dx_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmayy_dy_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmaxy_dx_1=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmaxy_dy_1=zeros(6,(NX+4+shft),(NY+4+shft));
+    memory_dvx_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvx_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxx_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmayy_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dx_1=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dy_1=zeros(4,(NX+4+shft),(NY+4+shft));
 
-    memory_dvx_dx_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dvx_dy_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dvy_dx_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dvy_dy_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmaxx_dx_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmayy_dy_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmaxy_dx_2=zeros(6,(NX+4+shft),(NY+4+shft));
-    memory_dsigmaxy_dy_2=zeros(6,(NX+4+shft),(NY+4+shft));
+    memory_dvx_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvx_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dvy_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxx_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmayy_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dx_2=zeros(4,(NX+4+shft),(NY+4+shft));
+    memory_dsigmaxy_dy_2=zeros(4,(NX+4+shft),(NY+4+shft));
 
 % 1D arrays for the damping profiles
     d_x_1=zeros((NX+4+shft),1);
@@ -395,17 +393,16 @@ JSOURCE=round(NY/2)+shft;
    
 % coefficients that allow to reset the memory variables at each RK4 substep depend on the substepping and are  of dimension 4,
 % 1D arrays for the damping profiles
-    a_x_1=zeros(6,(NX+4+shft));
-    b_x_1=zeros(6,(NX+4+shft));
+    a_x_1=zeros(4,(NX+4+shft));
+    b_x_1=zeros(4,(NX+4+shft));
    
-    a_y_1=zeros(6,(NX+4+shft));
-    b_y_1=zeros(6,(NX+4+shft));
+    a_y_1=zeros(4,(NX+4+shft));
+    b_y_1=zeros(4,(NX+4+shft));
    
 
 % 1D arrays for the damping profiles
-    a_x_2=zeros(6,(NX+4+shft));
-    
-    a_y_2=zeros(6,(NX+4+shft));
+    a_x_2=zeros(4,(NX+4+shft));
+    a_y_2=zeros(4,(NX+4+shft));
 
 
 % for receivers
@@ -471,18 +468,16 @@ fprintf('d0_y = %.2f\n\n',d0_y);
 
 % parameters involved in RK4 time expansion
 rk41(1) = ZERO;
-rk41(2) = 0.353323d0;
-rk41(3) = 0.999597d0;
-rk41(4) = 0.152188d0;
-rk41(5)=0.534216;
-rk41(6)=0.603907;
+rk41(2) = 0.5d0;
+rk41(3) = 0.5d0;
+rk41(4) = 1.d0;
 
-rk42(1) = 0.0467621d0;
-rk42(2) = 0.137286d0;
-rk42(3) = 0.170975d0;
-rk42(4) = 0.197572d0;
-rk42(5) =0.282263d0;
-rk42(6) =0.165142d0;
+
+rk42(1) = 1.d0/6.d0;
+rk42(2) = 1.d0/3.d0;
+rk42(3) = 1.d0/3.d0;
+rk42(4) = 1.d0/6.d0;
+
 
 ksi_x(:) = ZERO;
 d_x_1(:) = ZERO;
@@ -562,7 +557,7 @@ for i = 1:(NX+4+shft)
     end
 
     % CPML damping parameters for the 4 sub time steps of RK4 algorithm
-    for inc=1:6
+    for inc=1:4
         b_x_1(inc,i) =  (1.d0-epsn*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)))/ ...
         (1.d0+epsn1*DELTAT*rk41(inc)*(d_x_1(i)/K_x_1(i) + alpha_x_1(i)));   
         % this to avoid division by zero outside the PML
@@ -617,7 +612,7 @@ for j = 1:(NY+4+shft)
 
 
     % CPML damping parameters for the 4 sub time steps of RK4 algorithm
-    for inc=1:6
+    for inc=1:4
         b_y_1(inc,j) =  (1.d0-epsn*DELTAT*rk41(inc)*(d_y_1(j)/K_y_1(j) + alpha_y_1(j)))/...
         (1.d0+epsn1*DELTAT*rk41(inc)*(d_y_1(j)/K_y_1(j) + alpha_y_1(j)));
        
@@ -729,17 +724,14 @@ input('Run time loop?');
 %---  beginning of time loop
 %---
 
-am1=-0.30874;
-a0=-0.636;
-a1=1.2330;
-a2=-0.334;
-a3=0.04168;
-
-%Forward and backward difference operators
-% WFdksi=@(i,j,n,f) (am1*f(n,i-1,j)+a0*f(n,i,j)+a1*f(n,i+1,j)+a2*f(n,i+2,j)+a3*f(n,i+3,j))/DELTAX;
-% WBdksi=@(i,j,n,f) (-am1*f(n,i+1,j)-a0*f(n,i,j)-a1*f(n,i-1,j)-a2*f(n,i-2,j)-a3*f(n,i-3,j))/DELTAX;
-% WFdeta=@(i,j,n,f) (am1*f(n,i,j-1)+a0*f(n,i,j)+a1*f(n,i,j+1)+a2*f(n,i,j+2)+a3*f(n,i,j+3))/DELTAY;
-% WBdeta=@(i,j,n,f) (-am1*f(n,i,j+1)-a0*f(n,i,j)-a1*f(n,i,j-1)-a2*f(n,i,j-2)-a3*f(n,i,j-3))/DELTAY;
+%Tam Webb 1993
+a3=0.02651995d0;
+a2=-0.18941314;
+a1=0.79926643d0;
+a0=0.d0;
+am1=-a1;
+am2=-a2;
+am3=-a3;
 
 for it = 1:NSTEP
 tic;
@@ -751,58 +743,40 @@ tic;
     dsigmayy(1,:,:) = sigmayy(:,:);
     dsigmaxy(1,:,:) = sigmaxy(:,:);
 
-    dvx(6,:,:) = dvx(1,:,:);
-    dvy(6,:,:) = dvy(1,:,:);
-    dsigmaxx(6,:,:) = dsigmaxx(1,:,:);
-    dsigmayy(6,:,:) = dsigmayy(1,:,:);
-    dsigmaxy(6,:,:) = dsigmaxy(1,:,:);
+    dvx(4,:,:) = dvx(1,:,:);
+    dvy(4,:,:) = dvy(1,:,:);
+    dsigmaxx(4,:,:) = dsigmaxx(1,:,:);
+    dsigmayy(4,:,:) = dsigmayy(1,:,:);
+    dsigmaxy(4,:,:) = dsigmaxy(1,:,:);
 
     % same thing for CPML memory variables
-    memory_dsigmaxx_dx_1(6,:,:) = memory_dsigmaxx_dx_1(2,:,:);
-    memory_dsigmaxy_dy_1(6,:,:) = memory_dsigmaxy_dy_1(2,:,:);
-    memory_dsigmaxx_dx_2(6,:,:) = memory_dsigmaxx_dx_2(2,:,:);
-    memory_dsigmaxy_dy_2(6,:,:) = memory_dsigmaxy_dy_2(2,:,:);
-    memory_dsigmaxy_dx_1(6,:,:) = memory_dsigmaxy_dx_1(2,:,:);
-    memory_dsigmayy_dy_1(6,:,:) = memory_dsigmayy_dy_1(2,:,:);
-    memory_dsigmaxy_dx_2(6,:,:) = memory_dsigmaxy_dx_2(2,:,:);
-    memory_dsigmayy_dy_2(6,:,:) = memory_dsigmayy_dy_2(2,:,:);
-    memory_dvx_dx_1(6,:,:) = memory_dvx_dx_1(2,:,:);
-    memory_dvy_dy_1(6,:,:) = memory_dvy_dy_1(2,:,:);
-    memory_dvx_dx_2(6,:,:) = memory_dvx_dx_2(2,:,:);
-    memory_dvy_dy_2(6,:,:) = memory_dvy_dy_2(2,:,:);
-    memory_dvy_dx_1(6,:,:) = memory_dvy_dx_1(2,:,:);
-    memory_dvx_dy_1(6,:,:) = memory_dvx_dy_1(2,:,:);
-    memory_dvy_dx_2(6,:,:) = memory_dvy_dx_2(2,:,:);
-    memory_dvx_dy_2(6,:,:) = memory_dvx_dy_2(2,:,:);
+    memory_dsigmaxx_dx_1(4,:,:) = memory_dsigmaxx_dx_1(2,:,:);
+    memory_dsigmaxy_dy_1(4,:,:) = memory_dsigmaxy_dy_1(2,:,:);
+    memory_dsigmaxx_dx_2(4,:,:) = memory_dsigmaxx_dx_2(2,:,:);
+    memory_dsigmaxy_dy_2(4,:,:) = memory_dsigmaxy_dy_2(2,:,:);
+    memory_dsigmaxy_dx_1(4,:,:) = memory_dsigmaxy_dx_1(2,:,:);
+    memory_dsigmayy_dy_1(4,:,:) = memory_dsigmayy_dy_1(2,:,:);
+    memory_dsigmaxy_dx_2(4,:,:) = memory_dsigmaxy_dx_2(2,:,:);
+    memory_dsigmayy_dy_2(4,:,:) = memory_dsigmayy_dy_2(2,:,:);
+    memory_dvx_dx_1(4,:,:) = memory_dvx_dx_1(2,:,:);
+    memory_dvy_dy_1(4,:,:) = memory_dvy_dy_1(2,:,:);
+    memory_dvx_dx_2(4,:,:) = memory_dvx_dx_2(2,:,:);
+    memory_dvy_dy_2(4,:,:) = memory_dvy_dy_2(2,:,:);
+    memory_dvy_dx_1(4,:,:) = memory_dvy_dx_1(2,:,:);
+    memory_dvx_dy_1(4,:,:) = memory_dvx_dy_1(2,:,:);
+    memory_dvy_dx_2(4,:,:) = memory_dvy_dx_2(2,:,:);
+    memory_dvx_dy_2(4,:,:) = memory_dvx_dy_2(2,:,:);
 
     % RK4 loop (loop on the four RK4 substeps)
-    for inc=1:6
+    for inc=1:4
         %------------------
         % compute velocity
         %------------------
-%         %Forward and backward difference operators
-% WFdksi=@(i,j,f) (am1*f(i-1,j)+a0*f(i,j)+a1*f(i+1,j)+a2*f(i+2,j)+a3*f(i+3,j))/DELTAX;
-% WBdksi=@(i,j,f) (-am1*f(i+1,j)-a0*f(i,j)-a1*f(i-1,j)-a2*f(i-2,j)-a3*f(i-3,j))/DELTAX;
-% WFdeta=@(i,j,f) (am1*f(i,j-1)+a0*f(i,j)+a1*f(i,j+1)+a2*f(i,j+2)+a3*f(i,j+3))/DELTAY;
-% WBdeta=@(i,j,f) (-am1*f(i,j+1)-a0*f(i,j)-a1*f(i,j-1)-a2*f(i,j-2)-a3*f(i,j-3))/DELTAY;
         for j = 1+shft:NY+shft
             for i = 1+shft:NX+shft
-                %if inc==1 || inc==3
-% %                     value_dsigmaxx_dx=WFdksi(i,j,1,dsigmaxx(1,:,:));
-% %                     value_dsigmaxy_dy=WFdeta(i,j,1,dsigmaxy(1,:,:));
-%                       value_dsigmaxx_dx=(am1*dsigmaxx(1,i-1,j)+a0*dsigmaxx(1,i,j)+a1*dsigmaxx(1,i+1,j)+a2*dsigmaxx(1,i+2,j)+a3*dsigmaxx(1,i+3,j))/DELTAX;
-%                       value_dsigmaxy_dy=(am1*dsigmaxy(1,i,j-1)+a0*dsigmaxy(1,i,j)+a1*dsigmaxy(1,i,j+1)+a2*dsigmaxy(1,i,j+2)+a3*dsigmaxy(1,i,j+3))/DELTAY;
-%           
-%                 %elseif inc==2 || inc==4
-% %                     value_dsigmaxx_dx=WBdksi(i,j,1,dsigmaxx(1,:,:));
-% %                     value_dsigmaxy_dy=WBdeta(i,j,1,dsigmaxy(1,:,:));
-%                       value_dsigmaxx_dx= value_dsigmaxx_dx+(-am1*dsigmaxx(1,i+1,j)-a0*dsigmaxx(1,i,j)-a1*dsigmaxx(1,i-1,j)-a2*dsigmaxx(1,i-2,j)-a3*dsigmaxx(1,i-3,j))/DELTAX;
-%                       value_dsigmaxy_dy=value_dsigmaxy_dy+(-am1*dsigmaxy(1,i,j+1)-a0*dsigmaxy(1,i,j)-a1*dsigmaxy(1,i,j-1)-a2*dsigmaxy(1,i,j-2)-a3*dsigmaxy(1,i,j-3))/DELTAY;
-%                 %end
-                 value_dsigmaxx_dx = ( c1 * (dsigmaxx(1,i,j) - dsigmaxx(1,i-1,j)) + c2 * (dsigmaxx(1,i+1,j) - dsigmaxx(1,i-2,j)) +  ...
-                 c3 * (dsigmaxx(1,i+2,j) - dsigmaxx(1,i-3,j)) + c4 * (dsigmaxx(1,i+3,j) - dsigmaxx(1,i-4,j)) )/ DELTAX;
-                value_dsigmaxy_dy = ( c1 * (dsigmaxy(1,i,j) - dsigmaxy(1,i,j-1)) + c2* (dsigmaxy(1,i,j+1) - dsigmaxy(1,i,j-2)) +  ...
-                c3 * (dsigmaxy(1,i,j+2) - dsigmaxy(1,i,j-3)) + c4 * (dsigmaxy(1,i,j+3) - dsigmaxy(1,i,j-4)) )/ DELTAY;
+                      value_dsigmaxx_dx=(am3*dsigmaxx(1,i-3,j)+am2*dsigmaxx(1,i-2,j)+am1*dsigmaxx(1,i-1,j)+a0*dsigmaxx(1,i,j)+a1*dsigmaxx(1,i+1,j)+a2*dsigmaxx(1,i+2,j)+a3*dsigmaxx(1,i+3,j))/DELTAX;
+                      value_dsigmaxy_dy=(am3*dsigmaxy(1,i,j-3)+am2*dsigmaxy(1,i,j-2)+am1*dsigmaxy(1,i,j-1)+a0*dsigmaxy(1,i,j)+a1*dsigmaxy(1,i,j+1)+a2*dsigmaxy(1,i,j+2)+a3*dsigmaxy(1,i,j+3))/DELTAY;
+
                 if(i <= NPOINTS_PML+2+shft  || i >= NX-NPOINTS_PML-2+shft  ||  j <= NPOINTS_PML+2+shft  ||  j >=  NY-NPOINTS_PML-2+shft) 
                     memory_dsigmaxx_dx_1(2,i,j) = b_x_1(inc,i) * memory_dsigmaxx_dx_1(4,i,j) + a_x_1(inc,i) * value_dsigmaxx_dx;
                     memory_dsigmaxy_dy_1(2,i,j) = b_y_1(inc,j) * memory_dsigmaxy_dy_1(4,i,j) + a_y_1(inc,j) * value_dsigmaxy_dy;
@@ -818,17 +792,9 @@ tic;
             for i = 1+shft:NX+shft
                 % interpolate density at the right location in the staggered grid cell
                 rho_x_y = rho(i,j);
-%                 %if inc==1 || inc==3
-%                       value_dsigmaxy_dx=(am1*dsigmaxy(1,i-1,j)+a0*dsigmaxy(1,i,j)+a1*dsigmaxy(1,i+1,j)+a2*dsigmaxy(1,i+2,j)+a3*dsigmaxy(1,i+3,j))/DELTAX;
-%                       value_dsigmayy_dy=(am1*dsigmayy(1,i,j-1)+a0*dsigmayy(1,i,j)+a1*dsigmayy(1,i,j+1)+a2*dsigmayy(1,i,j+2)+a3*dsigmayy(1,i,j+3))/DELTAY;        
-%                 %elseif inc==2 || inc==4
-%                       value_dsigmaxy_dx=value_dsigmaxy_dx+(-am1*dsigmaxy(1,i+1,j)-a0*dsigmaxy(1,i,j)-a1*dsigmaxy(1,i-1,j)-a2*dsigmaxy(1,i-2,j)-a3*dsigmaxy(1,i-3,j))/DELTAX;
-%                       value_dsigmayy_dy=value_dsigmayy_dy+(-am1*dsigmayy(1,i,j+1)-a0*dsigmayy(1,i,j)-a1*dsigmayy(1,i,j-1)-a2*dsigmayy(1,i,j-2)-a3*dsigmayy(1,i,j-3))/DELTAY;
-%                 %end
-                value_dsigmaxy_dx = ( c1 * (dsigmaxy(1,i+1,j) - dsigmaxy(1,i,j)) + c2 * (dsigmaxy(1,i+2,j) - dsigmaxy(1,i-1,j)) +  ...
-                c3 * (dsigmaxy(1,i+3,j) - dsigmaxy(1,i-2,j)) + c4 * (dsigmaxy(1,i+4,j) - dsigmaxy(1,i-3,j)) )/ DELTAX;
-                value_dsigmayy_dy = ( c1 * (dsigmayy(1,i,j+1) - dsigmayy(1,i,j)) + c2 * (dsigmayy(1,i,j+2) - dsigmayy(1,i,j-1)) +  ...
-                c3 * (dsigmayy(1,i,j+3) - dsigmayy(1,i,j-2)) + c4 * (dsigmayy(1,i,j+4) - dsigmayy(1,i,j-3)) )/ DELTAY;
+                      value_dsigmaxy_dx=(am3*dsigmaxy(1,i-3,j)+am2*dsigmaxy(1,i-2,j)+am1*dsigmaxy(1,i-1,j)+a0*dsigmaxy(1,i,j)+a1*dsigmaxy(1,i+1,j)+a2*dsigmaxy(1,i+2,j)+a3*dsigmaxy(1,i+3,j))/DELTAX;
+                      value_dsigmayy_dy=(am3*dsigmayy(1,i,j-3)+am2*dsigmayy(1,i,j-2)+am1*dsigmayy(1,i,j-1)+a0*dsigmayy(1,i,j)+a1*dsigmayy(1,i,j+1)+a2*dsigmayy(1,i,j+2)+a3*dsigmayy(1,i,j+3))/DELTAY;        
+
                 if(i <= NPOINTS_PML+2+shft  || i >= NX-NPOINTS_PML-2+shft  ||  j <= NPOINTS_PML+2+shft  ||  j >=  NY-NPOINTS_PML-2+shft) 
                     memory_dsigmaxy_dx_1(2,i,j) = b_x_1(inc,i) * memory_dsigmaxy_dx_1(4,i,j) + a_x_1(inc,i) * value_dsigmaxy_dx;
                     memory_dsigmayy_dy_1(2,i,j) = b_y_1(inc,j) * memory_dsigmayy_dy_1(4,i,j) + a_y_1(inc,j) * value_dsigmayy_dy;
@@ -889,17 +855,9 @@ tic;
                 lambda_x = lambda(i,j);
                 mu_x = mu(i,j);
                 lambda_plus_two_mu_x = lambda_x + 2.d0 * mu_x;
-                %if inc==1 || inc==3
-%                       value_dvx_dx=(am1*dvx(1,i-1,j)+a0*dvx(1,i,j)+a1*dvx(1,i+1,j)+a2*dvx(1,i+2,j)+a3*dvx(1,i+3,j))/DELTAX;
-%                       value_dvy_dy=(am1*dvy(1,i,j-1)+a0*dvy(1,i,j)+a1*dvy(1,i,j+1)+a2*dvy(1,i,j+2)+a3*dvy(1,i,j+3))/DELTAY;        
-%                 %elseif inc==2 || inc==4
-%                       value_dvx_dx=value_dvx_dx+(-am1*dvx(1,i+1,j)-a0*dvx(1,i,j)-a1*dvx(1,i-1,j)-a2*dvx(1,i-2,j)-a3*dvx(1,i-3,j))/DELTAX;
-%                       value_dvy_dy=value_dvy_dy+(-am1*dvy(1,i,j+1)-a0*dvy(1,i,j)-a1*dvy(1,i,j-1)-a2*dvy(1,i,j-2)-a3*dvy(1,i,j-3))/DELTAY;
-%                 %end
-                value_dvx_dx = ( c1 * (dvx(1,i+1,j) - dvx(1,i,j)) + c2 * (dvx(1,i+2,j) - dvx(1,i-1,j)) +  ...
-                c3 * (dvx(1,i+3,j) - dvx(1,i-2,j)) + c4 * (dvx(1,i+4,j) - dvx(1,i-3,j)) )/ DELTAX;
-                value_dvy_dy = ( c1 * (dvy(1,i,j) - dvy(1,i,j-1)) + c2 * (dvy(1,i,j+1) - dvy(1,i,j-2)) +  ...
-                c3 * (dvy(1,i,j+2) - dvy(1,i,j-3)) + c4 * (dvy(1,i,j+3) - dvy(1,i,j-4)) )/ DELTAY;
+                      value_dvx_dx=(am3*dvx(1,i-3,j)+am2*dvx(1,i-2,j)+am1*dvx(1,i-1,j)+a0*dvx(1,i,j)+a1*dvx(1,i+1,j)+a2*dvx(1,i+2,j)+a3*dvx(1,i+3,j))/DELTAX;
+                      value_dvy_dy=(am3*dvy(1,i,j-3)+am2*dvy(1,i,j-2)+am1*dvy(1,i,j-1)+a0*dvy(1,i,j)+a1*dvy(1,i,j+1)+a2*dvy(1,i,j+2)+a3*dvy(1,i,j+3))/DELTAY;        
+                
                 if(i <= NPOINTS_PML+2+shft  || i >= NX-NPOINTS_PML-2+shft  ||  j <= NPOINTS_PML+2+shft  ||  j >=  NY-NPOINTS_PML-2+shft) 
                     memory_dvx_dx_1(2,i,j) = b_x_1(inc,i) * memory_dvx_dx_1(4,i,j) + a_x_1(inc,i) * value_dvx_dx;
                     memory_dvy_dy_1(2,i,j) = b_y_1(inc,j) * memory_dvy_dy_1(4,i,j) + a_y_1(inc,j) * value_dvy_dy;
@@ -916,17 +874,9 @@ tic;
             for i = 1+shft:NX+shft
                 % interpolate material parameters at the right location in the staggered grid cell
                 mu_y = mu(i,j);
-%                 %if inc==1 || inc==3
-%                       value_dvy_dx=(am1*dvy(1,i-1,j)+a0*dvy(1,i,j)+a1*dvy(1,i+1,j)+a2*dvy(1,i+2,j)+a3*dvy(1,i+3,j))/DELTAX;
-%                       value_dvx_dy=(am1*dvx(1,i,j-1)+a0*dvx(1,i,j)+a1*dvx(1,i,j+1)+a2*dvx(1,i,j+2)+a3*dvx(1,i,j+3))/DELTAY;        
-%                 %elseif inc==2 || inc==4
-%                       value_dvy_dx=value_dvy_dx+(-am1*dvy(1,i+1,j)-a0*dvy(1,i,j)-a1*dvy(1,i-1,j)-a2*dvy(1,i-2,j)-a3*dvy(1,i-3,j))/DELTAX;
-%                       value_dvx_dy=value_dvx_dy+(-am1*dvx(1,i,j+1)-a0*dvx(1,i,j)-a1*dvx(1,i,j-1)-a2*dvx(1,i,j-2)-a3*dvx(1,i,j-3))/DELTAY;
-%                 %end
-                value_dvx_dy = ( c1 * (dvx(1,i,j+1) - dvx(1,i,j)) + c2 * (dvx(1,i,j+2) - dvx(1,i,j-1)) +   ...
-                c3 * (dvx(1,i,j+3) - dvx(1,i,j-2)) + c4 * (dvx(1,i,j+4) - dvx(1,i,j-3)) )/ DELTAY;
-                value_dvy_dx = ( c1 * (dvy(1,i,j) - dvy(1,i-1,j)) + c2 * (dvy(1,i+1,j) - dvy(1,i-2,j)) +  ...
-                c3 * (dvy(1,i+2,j) - dvy(1,i-3,j)) + c4 * (dvy(1,i+3,j) - dvy(1,i-4,j)) )/ DELTAX;
+                value_dvy_dx=(am3*dvy(1,i-3,j)+am2*dvy(1,i-2,j)+am1*dvy(1,i-1,j)+a0*dvy(1,i,j)+a1*dvy(1,i+1,j)+a2*dvy(1,i+2,j)+a3*dvy(1,i+3,j))/DELTAX;
+                value_dvx_dy=(am3*dvx(1,i,j-3)+am2*dvx(1,i,j-2)+am1*dvx(1,i,j-1)+a0*dvx(1,i,j)+a1*dvx(1,i,j+1)+a2*dvx(1,i,j+2)+a3*dvx(1,i,j+3))/DELTAY;        
+
                  if(i <= NPOINTS_PML+2+shft  || i >= NX-NPOINTS_PML-2+shft  ||  j <= NPOINTS_PML+2+shft  ||  j >=  NY-NPOINTS_PML-2+shft) 
                     memory_dvy_dx_1(2,i,j) = b_x_1(inc,i) * memory_dvy_dx_1(4,i,j) + a_x_1(inc,i) * value_dvy_dx;
                     memory_dvx_dy_1(2,i,j) = b_y_1(inc,j) * memory_dvx_dy_1(4,i,j) + a_y_1(inc,j) * value_dvx_dy;
@@ -950,11 +900,11 @@ tic;
         end
         
         % The new values of the different variables v and sigma are computed
-        dvx(1,:,:) = dvx(6,:,:) + rk41(inc) * dvx(2,:,:) * DELTAT;
-        dvy(1,:,:) = dvy(6,:,:) + rk41(inc) * dvy(2,:,:) * DELTAT;
-        dsigmaxx(1,:,:) = dsigmaxx(6,:,:) + rk41(inc) * dsigmaxx(2,:,:) * DELTAT;
-        dsigmayy(1,:,:) = dsigmayy(6,:,:) + rk41(inc) * dsigmayy(2,:,:) * DELTAT;
-        dsigmaxy(1,:,:) = dsigmaxy(6,:,:) + rk41(inc) * dsigmaxy(2,:,:) * DELTAT;
+        dvx(1,:,:) = dvx(4,:,:) + rk41(inc) * dvx(2,:,:) * DELTAT;
+        dvy(1,:,:) = dvy(4,:,:) + rk41(inc) * dvy(2,:,:) * DELTAT;
+        dsigmaxx(1,:,:) = dsigmaxx(4,:,:) + rk41(inc) * dsigmaxx(2,:,:) * DELTAT;
+        dsigmayy(1,:,:) = dsigmayy(4,:,:) + rk41(inc) * dsigmayy(2,:,:) * DELTAT;
+        dsigmaxy(1,:,:) = dsigmaxy(4,:,:) + rk41(inc) * dsigmaxy(2,:,:) * DELTAT;
 
         memory_dsigmaxx_dx_1(1,:,:) = memory_dsigmaxx_dx_1(2,:,:);
         memory_dsigmaxy_dy_1(1,:,:) = memory_dsigmaxy_dy_1(2,:,:);
